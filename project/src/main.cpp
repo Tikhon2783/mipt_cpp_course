@@ -16,7 +16,7 @@
 #include <print>
 #include <string>
 #include <vector>
-#include <string_view>
+#include <map>
 
 int main(int argc, char** argv) {
     // Аргументы разбираются грубо: путь к журналу и ничего больше. Остальное,
@@ -33,16 +33,21 @@ int main(int argc, char** argv) {
     }
     
     bool flag_quiet = false;
-    if (argc > 2 && std::string(argv[2]) == "--quiet")
+    for (size_t i = 0; i < argc; i++)
     {
-        flag_quiet = true;
+        if (std::string(argv[i]) == "--quiet")
+        {
+            flag_quiet = true;
+        }
     }
+    
 
     long long lines = 0;
     long long comments = 0;
     std::string line;
     
     std::vector<std::string> keywords = {"wscript.exe", ".locked", "certutil.exe", "\\Startup\\"};
+    std::map<std::string, int> cnt;
 
     while (std::getline(log, line)) {
         // Счётчик увеличивается до всех проверок: он считает строки файла,
@@ -63,6 +68,7 @@ int main(int argc, char** argv) {
         // в выводе, — это lines.
         for (size_t i = 0; i < keywords.size(); i++)
         {
+            ++cnt[line.substr(22, line.find(" pid=") - 22)];
             if (line.find(keywords[i]) != std::string::npos)
             {
                 std::print("[DETECT] строка {}, признак {}: {}\n", lines, keywords[i], line);
@@ -75,6 +81,11 @@ int main(int argc, char** argv) {
     if (!flag_quiet)
     {
         std::print("строк {}, из них комментариев {}\n", lines, comments);
+        std::print("всего событий {}, из них:\n", lines - comments);
+        for (auto t : cnt)
+        {
+            std::print("\t{}: {}\n", t.first, t.second);
+        }
     }
     
     return 0;
