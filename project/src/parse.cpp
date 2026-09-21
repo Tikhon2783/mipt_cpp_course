@@ -22,6 +22,14 @@ bool IsBlankOrComment(const std::string* line) {
     if ((*line).empty() || !(*line).empty() && ((*line)[0] == '#' || (*line)[0] == ';')) {
         return true;
     }
+    for (size_t i = 0; i < (*line).size(); i++)
+    {
+        if ((*line)[i] != ' ' && (*line)[i] != '\t')
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool ParseEventLine(const std::string* line, Event* out) {
