@@ -4,17 +4,17 @@
 #include "event.h"
 #include <vector>
 
-struct Field {
-    std::string key;
-    std::string value;
-};
-struct Event {
-    std::string ts;    // время в миллисекундах, как в журнале
-    std::string type;  // process_start, file_write, net_connect, …
-    std::string pid;
+// struct Field {
+//     std::string key;
+//     std::string value;
+// };
+// struct Event {
+//     std::string ts;    // время в миллисекундах, как в журнале
+//     std::string type;  // process_start, file_write, net_connect, …
+//     std::string pid;
 
-    std::vector<Field> fields;  // всё, кроме ts, type и pid
-};
+//     std::vector<Field> fields;  // всё, кроме ts, type и pid
+// };
 
 namespace nano_edr {
 
