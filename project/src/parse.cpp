@@ -18,6 +18,12 @@ struct Event {
 
 namespace nano_edr {
 
+bool IsBlankOrComment(const std::string* line) {
+    if ((*line).empty() || !(*line).empty() && ((*line)[0] == '#' || (*line)[0] == ';')) {
+        return true;
+    }
+}
+
 bool ParseEventLine(const std::string* line, Event* out) {
     if (IsBlankOrComment(line))
     {
@@ -141,12 +147,6 @@ bool ParseEventLine(const std::string* line, Event* out) {
         }
     }
     return true;
-}
-
-bool IsBlankOrComment(const std::string* line) {
-    if ((*line).empty() || !(*line).empty() && ((*line)[0] == '#' || (*line)[0] == ';')) {
-        return true;
-    }
 }
 
 }
