@@ -32,16 +32,25 @@ namespace nano_edr {
 // size <= capacity всегда, и это то, что проверяют тесты.
 void ListPushBack(EventList* list, const Event* event) {
     auto node = new EventNode{*event, nullptr};
+    if (list->size == 1 && list->capacity == 1)
+    {
+        ListClear(list);
+    }
     if (list->head == nullptr)
     {
         list->head = node;
         list->tail = node;
+        ++list->size;
         return;
     }
     if (list->capacity == list->size)
     {
+        auto head = list->head;
         list->head = list->head->next;
+        delete head;
+        --list->size;
     }
+    
     list->tail->next = node;
     list->tail = node;
     ++list->size;
@@ -59,6 +68,11 @@ void ListPopFront(EventList* list) {
     delete list->head;
     list->head = head;
     --list->size;
+    if (list->size == 0)
+    {
+        list->tail = nullptr;
+    }
+    
 }
 
 // Освобождает всё. После вызова список пуст и пригоден к использованию снова.
@@ -80,4 +94,6 @@ nano_edr::EventList::~EventList() {
         delete head;
         head = next;
     }
+    size = 0;
+    tail = nullptr;
 }
