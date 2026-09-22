@@ -4,6 +4,8 @@
 #include "event.h"
 #include <vector>
 
+#include <print>
+
 // struct Field {
 //     std::string key;
 //     std::string value;
@@ -19,11 +21,11 @@
 namespace nano_edr {
 
 bool IsBlankOrComment(const std::string* line) {
-    if ((*line).empty() || !(*line).empty() && ((*line)[0] == '#' || (*line)[0] == ';')) {
-        return true;
-    }
     for (size_t i = 0; i < (*line).size(); i++)
     {
+        if ((*line)[i] == ';' || (*line)[i] == '#') {
+            return true;
+        }
         if ((*line)[i] != ' ' && (*line)[i] != '\t')
         {
             return false;
@@ -32,9 +34,15 @@ bool IsBlankOrComment(const std::string* line) {
     return true;
 }
 
+bool valid_symbol(char c) {
+    std::string specchar = "_=";
+    return ('a' <= c && c <='z' || 'A' <= c && c <='Z' || '0' <= c && c <='9' || specchar.find(c) != std::string::npos);
+}
+
 bool ParseEventLine(const std::string* line, Event* out) {
     if (IsBlankOrComment(line))
     {
+        std::print("ret 0\n");
         return false;
     }
     const std::string s = *line;
@@ -44,12 +52,13 @@ bool ParseEventLine(const std::string* line, Event* out) {
     int i_s = 0;
     int i_e = 0;
     bool val_quoted = false;
-    std::vector<bool> good(2, false);
+    std::vector<bool> good(3, false);
     std::vector<Field> fields;
     for (size_t i = 0; i < s.size(); i++)
     {
-        if (!is_key && !is_val && (s[i] == ' ' or s[i] == '\t'))
+        if (!is_key && !is_val && (s[i] == ' ' || s[i] == '\t'))
         {
+            std::print("skip space\n");
             continue;
         }
 
@@ -57,8 +66,10 @@ bool ParseEventLine(const std::string* line, Event* out) {
         {
             if (s[i] == '=')
             {
+                std::print("ret 1\n");
                 return false;
             }
+            std::print("was '{}'\n", s[i]);
             is_key = true;
             i_s = i;
         }
@@ -66,34 +77,53 @@ bool ParseEventLine(const std::string* line, Event* out) {
         //   ts=1730000001000 type=file_write pid=1042 path="C:\a b.js" size=812
         if (is_key)
         {
-            if (is_key && s[i] == '=')
+            if (s[i] == '=')
             {
                 is_key = false;
                 i_e = i;
             }
-            else if (is_key && !('a' <= s[i] && s[i] <='z' || 'A' <= s[i] && s[i] <='Z' || '0' <= s[i] && s[i] <='9'))
+            else if (!valid_symbol(s[i]))
             {
+                std::print("ret 2\n");
+                std::print("line = '{}'\ni = {}, s[i] = '{}', substr = '{}'\n", s, i, s[i], s.substr(0, i + 1));
+                std::print("ord(s[i]) = {}\n", static_cast<int>(s[i]));
+                std::print("is_key={}, is_val={}\n", is_key, is_val);
                 return false;
             }
-            continue;
+            else
+            {
+                continue;
+            }
         }
         
         if (!is_val)
         {
             is_val = true;
-            if (s[i] == '"')
+            if (i + 1 < s.size() && s[i + 1] == '"')
             {
                 val_quoted = true;
+                ++i;
             }
             continue;
         }
-        if (!val_quoted && !('a' <= s[i] && s[i] <='z' || 'A' <= s[i] && s[i] <='Z' || '0' <= s[i] && s[i] <='9'))
+        if (!val_quoted && (s[i] == ' ' || s[i] == '\t'))
         {
+            fields.push_back(Field{s.substr(i_s, i_e - i_s), s.substr(i_e + 1, i - i_e - 1)});
+            is_val = false;
+            val_quoted = false;
+            continue;
+        }
+        if (!val_quoted && !valid_symbol(s[i]))
+        {
+            std::print("ret 3\n");
+            std::print("line = '{}'\ni = {}, s[i] = '{}', substr = '{}'\n", s, i, s[i], s.substr(0, i + 1));
+            std::print("ord(s[i]) = {}\n", static_cast<int>(s[i]));
+            std::print("is_key={}, is_val={}\n", is_key, is_val);
             return false;
         }
         if (val_quoted && s[i] == '"')
         {
-            fields.push_back(Field{s.substr(i_s, i_e - i_s), s.substr(i_e + 2, i + 1 - i_e)});
+            fields.push_back(Field{s.substr(i_s, i_e - i_s), s.substr((i_e + 1) + 1, i - (i_e + 1) - 1)});
             is_val = false;
             val_quoted = false;
             continue;
@@ -102,21 +132,21 @@ bool ParseEventLine(const std::string* line, Event* out) {
         {
             continue;
         }
-        if (s[i] == ' ' or s[i] == '\t')
-        {
-            fields.push_back(Field{s.substr(i_s, i_e - i_s), s.substr(i_e + 2, i - i_e)});
-            is_val = false;
-            val_quoted = false;
-            continue;
-        }
     }
+    if (is_val && !val_quoted)
+    {
+        fields.push_back(Field{s.substr(i_s, i_e - i_s), s.substr(i_e + 1, s.size() - i_e - 1)});
+    }
+
     
     if (is_key)
     {
+        std::print("ret 4\n");
         return false;
     }
     if (val_quoted && is_val)
     {
+        std::print("ret 5\n");
         return false;
     }
     for (auto f : fields)
@@ -132,22 +162,27 @@ bool ParseEventLine(const std::string* line, Event* out) {
     }
     if (!good[0] || !good[1])
     {
+        std::print("ret 6\n");
         return false;
     }
 
+    good[2] = true;
     for (auto f : fields)
     {
-        if (f.key == "ts")
+        if (f.key == "ts" && good[0])
         {
             out->ts = f.value;
+            good[0] = false;
         }
-        else if (f.key == "type")
+        else if (f.key == "type" && good[1])
         {
             out->type = f.value;
+            good[1] = false;
         }
-        else if (f.key == "pid")
+        else if (f.key == "pid" && good[2])
         {
             out->pid = f.value;
+            good[2] = false;
         }
         else
         {
