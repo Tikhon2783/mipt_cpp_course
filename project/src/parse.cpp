@@ -4,8 +4,6 @@
 #include "event.h"
 #include <vector>
 
-#include <print>
-
 // struct Field {
 //     std::string key;
 //     std::string value;
@@ -42,7 +40,6 @@ bool valid_symbol(char c) {
 bool ParseEventLine(const std::string* line, Event* out) {
     if (IsBlankOrComment(line))
     {
-        std::print("ret 0\n");
         return false;
     }
     const std::string s = *line;
@@ -58,7 +55,6 @@ bool ParseEventLine(const std::string* line, Event* out) {
     {
         if (!is_key && !is_val && (s[i] == ' ' || s[i] == '\t'))
         {
-            std::print("skip space\n");
             continue;
         }
 
@@ -66,10 +62,8 @@ bool ParseEventLine(const std::string* line, Event* out) {
         {
             if (s[i] == '=')
             {
-                std::print("ret 1\n");
                 return false;
             }
-            std::print("was '{}'\n", s[i]);
             is_key = true;
             i_s = i;
         }
@@ -84,10 +78,6 @@ bool ParseEventLine(const std::string* line, Event* out) {
             }
             else if (!valid_symbol(s[i]))
             {
-                std::print("ret 2\n");
-                std::print("line = '{}'\ni = {}, s[i] = '{}', substr = '{}'\n", s, i, s[i], s.substr(0, i + 1));
-                std::print("ord(s[i]) = {}\n", static_cast<int>(s[i]));
-                std::print("is_key={}, is_val={}\n", is_key, is_val);
                 return false;
             }
             else
@@ -115,10 +105,6 @@ bool ParseEventLine(const std::string* line, Event* out) {
         }
         if (!val_quoted && !valid_symbol(s[i]))
         {
-            std::print("ret 3\n");
-            std::print("line = '{}'\ni = {}, s[i] = '{}', substr = '{}'\n", s, i, s[i], s.substr(0, i + 1));
-            std::print("ord(s[i]) = {}\n", static_cast<int>(s[i]));
-            std::print("is_key={}, is_val={}\n", is_key, is_val);
             return false;
         }
         if (val_quoted && s[i] == '"')
@@ -141,12 +127,10 @@ bool ParseEventLine(const std::string* line, Event* out) {
     
     if (is_key)
     {
-        std::print("ret 4\n");
         return false;
     }
     if (val_quoted && is_val)
     {
-        std::print("ret 5\n");
         return false;
     }
     for (auto f : fields)
@@ -162,7 +146,6 @@ bool ParseEventLine(const std::string* line, Event* out) {
     }
     if (!good[0] || !good[1])
     {
-        std::print("ret 6\n");
         return false;
     }
 
