@@ -72,7 +72,6 @@ void ListPopFront(EventList* list) {
     {
         list->tail = nullptr;
     }
-    
 }
 
 // Освобождает всё. После вызова список пуст и пригоден к использованию снова.

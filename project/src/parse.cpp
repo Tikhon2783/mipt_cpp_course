@@ -33,7 +33,8 @@ bool IsBlankOrComment(const std::string* line) {
 }
 
 bool valid_symbol(char c) {
-    std::string specchar = "_=";
+    return true;
+    std::string specchar = "_=\\/.";
     return ('a' <= c && c <='z' || 'A' <= c && c <='Z' || '0' <= c && c <='9' || specchar.find(c) != std::string::npos);
 }
 
@@ -76,7 +77,7 @@ bool ParseEventLine(const std::string* line, Event* out) {
                 is_key = false;
                 i_e = i;
             }
-            else if (!valid_symbol(s[i]))
+            else if (!valid_symbol(s[i]) || s[i] == ' ' || s[i] == '\t')
             {
                 return false;
             }
