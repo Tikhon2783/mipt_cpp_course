@@ -90,13 +90,12 @@ int main(int argc, char** argv) {
             continue;
         }
 
-        nano_edr::Event* event = new nano_edr::Event;
-        if (!nano_edr::ParseEventLine(&line, event)) {
+        nano_edr::Event event;
+        if (!nano_edr::ParseEventLine(&line, &event)) {
             debug_print("[DBG] malformed line, skip\n");
-            delete event;
             continue;
         }
-        ++cnt[event->pid];
+        ++cnt[event.pid];
 
         debug_print("[DBG] line=`{}`\n", line);
 
@@ -140,7 +139,7 @@ int main(int argc, char** argv) {
         }
 
         debug_print("[DBG] after detect...\n");
-        nano_edr::ListPushBack(&events_window, event);
+        nano_edr::ListPushBack(&events_window, &event);
     }
 
     nano_edr::ListClear(&events_window);
