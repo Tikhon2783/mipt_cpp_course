@@ -22,10 +22,7 @@
 #include <vector>
 #include <map>
 
-#include <getopt.h>
-// #include <cstdlib>
-
-const bool DBG_MODE = 0;
+constexpr bool DBG_MODE = 0;
 template <typename... Args>
 void debug_print(std::format_string<Args...> format, Args&&... args) {
     if (!DBG_MODE) {
@@ -41,7 +38,7 @@ int main(int argc, char** argv) {
         std::print(stderr, "использование: nano-edr <журнал.log>\n");
         return 2;
     }
-
+    
     std::ifstream log(argv[1]);
     if (!log) {
         std::print(stderr, "не удалось открыть журнал: {}\n", argv[1]);
@@ -51,29 +48,31 @@ int main(int argc, char** argv) {
     bool flag_quiet = false;
     int window_size = 64;
     size_t context_size = 2;
-    //
-    int opt, option_index = 0;
-    static struct option long_options[] = {
-        {"quiet",        no_argument,       nullptr,      'q'},
-        {"window-size",  required_argument, nullptr,      'w'},
-        {nullptr,       0,                 nullptr,      0},
-    };
-    while ((opt = getopt_long(argc, argv, "", long_options, &option_index)) != -1) {
-        switch (opt) {
-            case 'q': flag_quiet = true; break;
-            case 'w': window_size = std::atoi(optarg); break;
-            case '?': break;
+    const std::vector<std::string> keywords = {"wscript.exe", ".locked", "certutil.exe", "\\Startup\\"};
+
+    for (int i = 1; i < argc; i++)
+    {        
+        if (std::string(argv[i]) == "--quiet")
+        {
+            debug_print("QUIET\n");
+            flag_quiet = true;
         }
-    }
-    //
+        else if (std::string(argv[i]) == "--window-size")
+        {
+            if (i + 1 < argc)
+            {
+                window_size = std::atoi(argv[++i]);
+            } else
+            {
+                throw std::invalid_argument("с --window-size нужен аргумент N");
+            }
+        }
+    }  
     
     long long lines = 0;
     long long comments = 0;
-    std::string line;
-    
-    std::vector<std::string> keywords = {"wscript.exe", ".locked", "certutil.exe", "\\Startup\\"};
+    std::string line;    
     std::map<std::string, int> cnt;
-
     nano_edr::EventList events_window;
     events_window.capacity = window_size;
 
@@ -111,38 +110,27 @@ int main(int argc, char** argv) {
         
         if (keyword_detected && events_window.size > 0 && !flag_quiet)
         {
-            debug_print("1\n");
-            std::vector<nano_edr::Event*> last_context(std::min(context_size, events_window.size));
-            auto head = events_window.head;
+            auto curr_context_size = std::min(context_size, events_window.size);
+            auto context_head = events_window.head;
+            for (size_t i = 0; i < events_window.size - curr_context_size; i++)
+            {
+                context_head = context_head->next;
+            }
 
-            debug_print("2\n");
-            for (size_t i = 0; i < events_window.size - last_context.size(); i++)
+            for (size_t j = 0; j < curr_context_size; j++)
             {
-                head = head->next;
-            }
-            debug_print("3\n");
-            for (size_t i = 0; i < last_context.size(); i++)
-            {
-                last_context[i] = &(head->event);
-                head = head->next;
-            }
-            debug_print("4\n");
-            int _ = std::min((size_t)2, events_window.size);
-            debug_print("5\n");
-            
-            for (size_t j = 0; j < last_context.size(); j++)
-            {
-                debug_print("6\n");
-                debug_print("last_context[j] == nullptr ?: {}", last_context[j] == nullptr);
-                std::print("[CTX] -{}: ts={} type={} pid={}\n", last_context.size() - j, last_context[j]->ts, last_context[j]->type, last_context[j]->pid);
+                if (context_head == nullptr)
+                {
+                    break;
+                }
+                std::print("[CTX] -{}: ts={} type={} pid={}\n", curr_context_size - j, context_head->event.ts, context_head->event.type, context_head->event.pid);
+                context_head = context_head->next;
             }
         }
 
-        debug_print("[DBG] after detect...\n");
         nano_edr::ListPushBack(&events_window, &event);
     }
 
-    nano_edr::ListClear(&events_window);
     if (!flag_quiet)
     {
         std::print("строк {}, из них комментариев {}\n", lines, comments);

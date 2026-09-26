@@ -24,38 +24,6 @@
 
 namespace nano_edr {
 
-
-// Дописывает копию события в конец.
-//
-// Если capacity задана и список полон, сначала выбрасывается самое старое
-// событие: список — окно последних, а не архив. Значит после вызова
-// size <= capacity всегда, и это то, что проверяют тесты.
-void ListPushBack(EventList* list, const Event* event) {
-    auto node = new EventNode{*event, nullptr};
-    if (list->size == 1 && list->capacity == 1)
-    {
-        ListClear(list);
-    }
-    if (list->head == nullptr)
-    {
-        list->head = node;
-        list->tail = node;
-        ++list->size;
-        return;
-    }
-    if (list->capacity == list->size)
-    {
-        auto head = list->head;
-        list->head = list->head->next;
-        delete head;
-        --list->size;
-    }
-    
-    list->tail->next = node;
-    list->tail = node;
-    ++list->size;
-}
-
 // Убирает самое старое событие. На пустом списке — ничего не делает
 // и не считается ошибкой: «убрать из пустого» это обычный ход событий,
 // а не исключительная ситуация.
@@ -74,9 +42,34 @@ void ListPopFront(EventList* list) {
     }
 }
 
+// Дописывает копию события в конец.
+//
+// Если capacity задана и список полон, сначала выбрасывается самое старое
+// событие: список — окно последних, а не архив. Значит после вызова
+// size <= capacity всегда, и это то, что проверяют тесты.
+void ListPushBack(EventList* list, const Event* event) {
+    auto node = new EventNode{*event, nullptr};
+    if (list->capacity != 0 && (list->size == list->capacity))
+    {
+        ListPopFront(list);
+    }
+    if (list->head == nullptr)
+    {
+        list->head = node;
+        list->tail = node;
+        ++list->size;
+        return;
+    }
+    
+    list->tail->next = node;
+    list->tail = node;
+    ++list->size;
+}
+
 // Освобождает всё. После вызова список пуст и пригоден к использованию снова.
 void ListClear(EventList* list) {
-    while (list->head != nullptr) {
+    while (list->head != nullptr)
+    {
         auto next = list->head->next;
         delete list->head;
         list->head = next;
@@ -88,11 +81,5 @@ void ListClear(EventList* list) {
 }  // namespace nano_edr
 
 nano_edr::EventList::~EventList() {
-    while (head != nullptr) {
-        auto next = head->next;
-        delete head;
-        head = next;
-    }
-    size = 0;
-    tail = nullptr;
+    ListClear(this);
 }

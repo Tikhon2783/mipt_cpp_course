@@ -4,38 +4,19 @@
 #include "event.h"
 #include <vector>
 
-// struct Field {
-//     std::string key;
-//     std::string value;
-// };
-// struct Event {
-//     std::string ts;    // время в миллисекундах, как в журнале
-//     std::string type;  // process_start, file_write, net_connect, …
-//     std::string pid;
-
-//     std::vector<Field> fields;  // всё, кроме ts, type и pid
-// };
-
 namespace nano_edr {
 
 bool IsBlankOrComment(const std::string* line) {
-    for (size_t i = 0; i < (*line).size(); i++)
+    size_t p = line->find_first_not_of(" \t");
+    if (p == std::string::npos || (*line)[p] == ';' || (*line)[p] == '#')
     {
-        if ((*line)[i] == ';' || (*line)[i] == '#') {
-            return true;
-        }
-        if ((*line)[i] != ' ' && (*line)[i] != '\t')
-        {
-            return false;
-        }
+        return true;
     }
-    return true;
+    return false;
 }
 
-bool valid_symbol(char c) {
-    return true;
-    std::string specchar = "_=\\/.";
-    return ('a' <= c && c <='z' || 'A' <= c && c <='Z' || '0' <= c && c <='9' || specchar.find(c) != std::string::npos);
+bool isSpace(char c) {
+    return c == ' ' || c == '\t';
 }
 
 bool ParseEventLine(const std::string* line, Event* out) {
@@ -43,25 +24,23 @@ bool ParseEventLine(const std::string* line, Event* out) {
     {
         return false;
     }
-    const std::string s = *line;
 
     bool is_key = false;
     bool is_val = false;
-    int i_s = 0;
-    int i_e = 0;
+    size_t i_s = 0;
+    size_t i_e = 0;
     bool val_quoted = false;
-    std::vector<bool> good(3, false);
     std::vector<Field> fields;
-    for (size_t i = 0; i < s.size(); i++)
+    for (size_t i = 0; i < (*line).size(); i++)
     {
-        if (!is_key && !is_val && (s[i] == ' ' || s[i] == '\t'))
+        if (!is_key && !is_val && (isSpace((*line)[i])))
         {
             continue;
         }
-
+        
         if (!is_key && !is_val)
         {
-            if (s[i] == '=')
+            if ((*line)[i] == '=')
             {
                 return false;
             }
@@ -69,15 +48,15 @@ bool ParseEventLine(const std::string* line, Event* out) {
             i_s = i;
         }
         
-        //   ts=1730000001000 type=file_write pid=1042 path="C:\a b.js" size=812
+        // парсинг/валидация ключа
         if (is_key)
         {
-            if (s[i] == '=')
+            if ((*line)[i] == '=')
             {
                 is_key = false;
                 i_e = i;
             }
-            else if (!valid_symbol(s[i]) || s[i] == ' ' || s[i] == '\t')
+            else if (isSpace((*line)[i]))
             {
                 return false;
             }
@@ -87,42 +66,41 @@ bool ParseEventLine(const std::string* line, Event* out) {
             }
         }
         
+        // парсинг/валидация значения
         if (!is_val)
         {
             is_val = true;
-            if (i + 1 < s.size() && s[i + 1] == '"')
+            if (i + 1 < (*line).size() && (*line)[i + 1] == '"')
             {
                 val_quoted = true;
                 ++i;
             }
             continue;
         }
-        if (!val_quoted && (s[i] == ' ' || s[i] == '\t'))
+        // конец значения не в кавычках
+        if (!val_quoted && (isSpace((*line)[i])))
         {
-            fields.push_back(Field{s.substr(i_s, i_e - i_s), s.substr(i_e + 1, i - i_e - 1)});
+            fields.push_back(Field{(*line).substr(i_s, i_e - i_s), (*line).substr(i_e + 1, i - i_e - 1)});
             is_val = false;
             val_quoted = false;
             continue;
         }
-        if (!val_quoted && !valid_symbol(s[i]))
+        // конец значения в кавычках
+        if (val_quoted && (*line)[i] == '"')
         {
-            return false;
-        }
-        if (val_quoted && s[i] == '"')
-        {
-            fields.push_back(Field{s.substr(i_s, i_e - i_s), s.substr((i_e + 1) + 1, i - (i_e + 1) - 1)});
+            if (i != (*line).size() - 1 && !isSpace((*line)[i + 1]))
+            {
+                return false;
+            }
+            fields.push_back(Field{(*line).substr(i_s, i_e - i_s), (*line).substr((i_e + 1) + 1, i - (i_e + 1) - 1)});
             is_val = false;
             val_quoted = false;
-            continue;
-        }
-        if (val_quoted)
-        {
             continue;
         }
     }
     if (is_val && !val_quoted)
     {
-        fields.push_back(Field{s.substr(i_s, i_e - i_s), s.substr(i_e + 1, s.size() - i_e - 1)});
+        fields.push_back(Field{(*line).substr(i_s, i_e - i_s), (*line).substr(i_e + 1, (*line).size() - i_e - 1)});
     }
 
     
@@ -134,39 +112,40 @@ bool ParseEventLine(const std::string* line, Event* out) {
     {
         return false;
     }
-    for (auto f : fields)
+    int spec_keys_exist = 0b00;
+    for (const Field& f : fields)
     {
         if (f.key == "ts")
         {
-            good[0] = true;
+            spec_keys_exist |= 0b01;
         }
         else if (f.key == "type")
         {
-            good[1] = true;
+            spec_keys_exist |= 0b10;
         }
     }
-    if (!good[0] || !good[1])
+    if (spec_keys_exist != 0b11)
     {
         return false;
     }
-
-    good[2] = true;
-    for (auto f : fields)
+    
+    int spec_keys_unused = 0b111;
+    for (const Field& f : fields)
     {
-        if (f.key == "ts" && good[0])
+        if (f.key == "ts" && (spec_keys_unused & 0b100))
         {
             out->ts = f.value;
-            good[0] = false;
+            spec_keys_unused &= 0b011;
         }
-        else if (f.key == "type" && good[1])
+        else if (f.key == "type" && (spec_keys_unused & 0b010))
         {
             out->type = f.value;
-            good[1] = false;
+            spec_keys_unused &= 0b101;
         }
-        else if (f.key == "pid" && good[2])
+        else if (f.key == "pid" && (spec_keys_unused & 0b001))
         {
             out->pid = f.value;
-            good[2] = false;
+            spec_keys_unused &= 0b110;
         }
         else
         {
