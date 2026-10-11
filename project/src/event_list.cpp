@@ -28,16 +28,14 @@ namespace nano_edr {
 // и не считается ошибкой: «убрать из пустого» это обычный ход событий,
 // а не исключительная ситуация.
 void ListPopFront(EventList* list) {
-    if (list->size == 0)
-    {
+    if (list->size == 0) {
         return;
     }
     auto head = list->head->next;
     delete list->head;
     list->head = head;
     --list->size;
-    if (list->size == 0)
-    {
+    if (list->size == 0) {
         list->tail = nullptr;
     }
 }
@@ -49,18 +47,16 @@ void ListPopFront(EventList* list) {
 // size <= capacity всегда, и это то, что проверяют тесты.
 void ListPushBack(EventList* list, const Event* event) {
     auto node = new EventNode{*event, nullptr};
-    if (list->capacity != 0 && (list->size == list->capacity))
-    {
+    if (list->capacity != 0 && (list->size == list->capacity)) {
         ListPopFront(list);
     }
-    if (list->head == nullptr)
-    {
+    if (list->head == nullptr) {
         list->head = node;
         list->tail = node;
         ++list->size;
         return;
     }
-    
+
     list->tail->next = node;
     list->tail = node;
     ++list->size;
@@ -68,8 +64,7 @@ void ListPushBack(EventList* list, const Event* event) {
 
 // Освобождает всё. После вызова список пуст и пригоден к использованию снова.
 void ListClear(EventList* list) {
-    while (list->head != nullptr)
-    {
+    while (list->head != nullptr) {
         auto next = list->head->next;
         delete list->head;
         list->head = next;
