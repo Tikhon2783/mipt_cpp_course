@@ -33,6 +33,26 @@ void debug_print(std::format_string<Args...> format, Args&&... args) {
     std::print(format, std::forward<Args>(args)...);
 }
 
+
+
+struct Stats {
+    bool flag_quiet = false;
+    long long lines;
+    long long comments;
+    std::map<std::string, int> cnt;
+    Stats() : lines(0), comments(0), cnt(std::map<std::string, int>()) {}
+
+    ~Stats() {
+        if (!flag_quiet) {
+            std::print("строк {}, из них комментариев {}\n", lines, comments);
+            std::print("всего событий {}, из них:\n", lines - comments);
+            for (auto t : cnt) {
+                std::print("\t{}: {}\n", t.first, t.second);
+            }
+        }
+    }
+};
+
 int main(int argc, char** argv) {
     try {
         // Аргументы разбираются грубо: путь к журналу и ничего больше. Остальное,
@@ -66,22 +86,20 @@ int main(int argc, char** argv) {
             }
         }
     
-        long long lines = 0;
-        long long comments = 0;
-        std::string line;
-        std::map<std::string, int> cnt;
+        Stats stats = Stats();
         nano_edr::EventList events_window;
         events_window.capacity = window_size;
+        std::string line;
     
         while (std::getline(log, line)) {
             // Счётчик увеличивается до всех проверок: он считает строки файла,
             // а не события. Номер, посчитанный по событиям, бесполезен — по нему
             // нельзя открыть файл и посмотреть.
-            ++lines;
+            ++stats.lines;
     
             // Строки-комментарии в журнале начинаются с '#'
             if (nano_edr::IsBlankOrComment(&line)) {
-                ++comments;
+                ++stats.comments;
                 debug_print("[DBG] skip blank/comment\n");
                 continue;
             }
@@ -91,13 +109,13 @@ int main(int argc, char** argv) {
                 debug_print("[DBG] malformed line, skip\n");
                 continue;
             }
-            ++cnt[event.pid];
+            ++stats.cnt[event.pid];
     
             debug_print("[DBG] line=`{}`\n", line);
     
             auto rules_detected = nano_edr::CheckRules(event, nano_edr::AgentRules(), nano_edr::AgentRuleCount());
     
-            if (rules_detected != 0) {
+            if (rules_detected != 0 && !flag_quiet) {
                 auto curr_context_size = std::min(context_size, events_window.size);
                 auto context_head = events_window.head;
                 for (size_t i = 0; i < events_window.size - curr_context_size; i++) {
@@ -115,15 +133,8 @@ int main(int argc, char** argv) {
     
             nano_edr::ListPushBack(&events_window, &event);
         }
-    
-        if (!flag_quiet) {
-            std::print("строк {}, из них комментариев {}\n", lines, comments);
-            std::print("всего событий {}, из них:\n", lines - comments);
-            for (auto t : cnt) {
-                std::print("\t{}: {}\n", t.first, t.second);
-            }
-        }
-    } catch (const std::invalid_argument& e) {
+        //
+    } catch (const std::exception& e) {
         std::print("ошибка: {}\n", e.what());
         return 1;
     }
