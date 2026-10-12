@@ -7,7 +7,7 @@
 
 namespace nano_edr {
 
-constexpr std::size_t contextSize = 2;
+constexpr std::size_t kContextSize = 2;
 
 Agent::Agent(std::size_t window_size, bool quiet) : events_window_(window_size), quiet_(quiet) {}
 
@@ -15,7 +15,7 @@ void Agent::HandleEvent(const Event& event) {
     auto rules_detected = CheckRules(event, AgentRules(), AgentRuleCount());
 
     if (rules_detected != 0 && !quiet_) {
-        auto curr_context_size = std::min(contextSize, events_window_.size());
+        auto curr_context_size = std::min(kContextSize, events_window_.size());
         auto context_head = events_window_.head();
         for (size_t i = 0; i < events_window_.size() - curr_context_size; i++) {
             context_head = context_head->next;
