@@ -51,7 +51,9 @@ void Agent::Trampoline(const os_event* ev, void* ctx) noexcept {
     try {
         EventParts parts;
         parts.ts = std::to_string(ev->ts);
-        parts.type = ev->type;
+        if (ev->type != nullptr) {
+            parts.type = ev->type;
+        }
         if (ev->pid != 0) {
             parts.pid = std::to_string(ev->pid);
         }
