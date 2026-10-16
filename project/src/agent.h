@@ -19,7 +19,8 @@ class Agent {
     static void Trampoline(const os_event* ev, void* ctx) noexcept;
 
  private:
-    EventList events_window_;  // последние события, не больше window_size
+    EventList events_window_;
+    const nano_edr::EventNode* context_ptr_;
     bool quiet_;
     int total_ = 0;
     std::map<std::string, int> cnt;
