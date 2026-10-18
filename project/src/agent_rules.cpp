@@ -1,7 +1,6 @@
 #include "agent_rules.h"
-#include "fields.h"
 
-#include <stdexcept>
+#include "fields.h"
 
 namespace nano_edr {
 
@@ -12,7 +11,7 @@ bool CheckScriptHostFromTemp(const Event& event) {
 
     const std::string* image = FindField(event, "image");
     if (!image) {
-        throw std::invalid_argument("image is required"); 
+        throw std::invalid_argument("image is required");
     }
 
     std::string image_normalized = NormalizePath(*image);
@@ -31,7 +30,7 @@ bool CheckLolbinDownload(const Event& event) {
 
     const std::string* image = FindField(event, "image");
     if (!image) {
-        throw std::invalid_argument("image is required"); 
+        throw std::invalid_argument("image is required");
     }
 
     std::string image_norm = NormalizePath(*image);
@@ -53,7 +52,7 @@ bool CheckHiddenPowershell(const Event& event) {
 
     const std::string* image = FindField(event, "image");
     if (!image) {
-        throw std::invalid_argument("image is required"); 
+        throw std::invalid_argument("image is required");
     }
 
     std::string image_norm = NormalizePath(*image);
@@ -69,14 +68,14 @@ bool CheckHiddenPowershell(const Event& event) {
 }
 
 bool CheckAutostartWrite(const Event& event) {
-    if (event.type != "file_create" &&
-        event.type != "file_write" &&
-        event.type != "file_move") {
+    if (event.type() != "file_create" &&
+        event.type() != "file_write" &&
+        event.type() != "file_move") {
         return false;
     }
 
     const std::string* path = nullptr;
-    if (event.type == "file_move") {
+    if (event.type() == "file_move") {
         path = FindField(event, "to");
     } else {
         path = FindField(event, "path");
@@ -91,14 +90,14 @@ bool CheckAutostartWrite(const Event& event) {
 }
 
 bool CheckRansomExtension(const Event& event) {
-    if (event.type != "file_create" &&
-        event.type != "file_write" &&
-        event.type != "file_move") {
+    if (event.type() != "file_create" &&
+        event.type() != "file_write" &&
+        event.type() != "file_move") {
         return false;
     }
 
     const std::string* path = nullptr;
-    if (event.type == "file_move") {
+    if (event.type() == "file_move") {
         path = FindField(event, "to");
     } else {
         path = FindField(event, "path");

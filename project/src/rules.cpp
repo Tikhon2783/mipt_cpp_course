@@ -1,7 +1,5 @@
 #include "rules.h"
 
-#include <cstdio>
-
 namespace nano_edr {
 
 const char* SeverityName(Severity severity) {
@@ -27,8 +25,8 @@ size_t CheckRules(const Event& event, const Rule* rules, size_t rule_count) {
             printf("[DETECT] %s  %s  ts=%s pid=%s\n",
                    SeverityName(rules[i].severity),
                    rules[i].id,
-                   event.ts.c_str(),
-                   event.pid.c_str());
+                   event.raw_ts().c_str(),
+                   event.pid().c_str());
         }
     }
     return detects;
