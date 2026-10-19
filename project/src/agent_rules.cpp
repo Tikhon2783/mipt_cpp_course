@@ -3,6 +3,7 @@
 #include "fields.h"
 
 namespace nano_edr {
+    
 
 bool CheckScriptHostFromTemp(const Event& event) {
     if (!IsProcessStart(event)) {

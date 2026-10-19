@@ -6,6 +6,7 @@ char c_to_lower(unsigned char c) {
     return std::tolower(c);
 }
 
+
 std::string to_lower(const std::string& s) {
     std::string result = s;
     std::transform(result.begin(), result.end(), result.begin(), c_to_lower);

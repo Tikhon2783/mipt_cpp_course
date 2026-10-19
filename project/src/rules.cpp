@@ -2,6 +2,7 @@
 
 namespace nano_edr {
 
+    
 const char* SeverityName(Severity severity) {
     switch (severity) {
         case Severity::kLow:
