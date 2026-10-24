@@ -2,27 +2,30 @@
 #define NANO_EDR_SOURCES_H
 
 #include <fstream>
+#include <string>
 
-#include "agent.h"
+#include "event_source.h"
 #include "os_handle.h"
 
 namespace nano_edr {
 
-class FileSource {
+class FileSource : public IEventSource {
  public:
     explicit FileSource(const std::string& path);
-    void Run(Agent* agent);  // строка → EventParts → Event → HandleEvent
+    void Run(IEventHandler* handler) override;  // строка → EventParts → Event → HandleEvent
 
  private:
     std::ifstream log_;
 };
 
-class OsSource {
+class OsSource : public IEventSource {
  public:
     explicit OsSource(const std::string& config_path);  // создаёт OsHandle
-    void Run(Agent* agent);                             // Subscribe, Start, Wait в цикле
+    void Run(IEventHandler* handler) override;          // Subscribe, Start, Wait в цикле
 
  private:
+    static void Trampoline(const os_event* ev, void* ctx) noexcept;
+
     OsHandle handle_;
 };
 

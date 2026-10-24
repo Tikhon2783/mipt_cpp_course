@@ -4,27 +4,28 @@
 #include <cstddef>
 #include <map>
 #include <string>
-#include <vector>
 
 #include "event.h"
 #include "event_list.h"
-#include "os.h"
-#include "rule.h"
+#include "event_source.h"
+#include "rule_engine.h"
 
 namespace nano_edr {
 
-class Agent {
+class Agent : public IEventHandler {
  public:
     Agent(std::size_t window_size, bool quiet);  // из --window-size и --quiet
 
-    void HandleEvent(const Event& event);
-    void PrintSummary() const;  // сводка в конце прогона
+    void HandleEvent(const Event& event) override;
+    void OnSkipped() override;
+    void OnBroken() override;
+    void OnTick() override;
 
-    static void Trampoline(const os_event* ev, void* ctx) noexcept;
+    void PrintSummary() const;  // сводка в конце прогона
 
  private:
     EventList events_window_;
-    std::vector<MatchRule> rules_;  // в конструкторе: BuildAgentRules()
+    RuleEngine engine_;  // в конструкторе: BuildAgentRules()
     const nano_edr::EventNode* context_ptr_;
     bool quiet_;
     int total_ = 0;

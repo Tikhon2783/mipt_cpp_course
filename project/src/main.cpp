@@ -1,3 +1,4 @@
+#include <memory>
 #include <print>
 
 #include "agent.h"
@@ -51,13 +52,13 @@ int main(int argc, char** argv) {
 
     try {
         nano_edr::Agent agent(window_size, flag_quiet);
+        std::unique_ptr<nano_edr::IEventSource> source;
         if (has_file) {
-            nano_edr::FileSource source(path);
-            source.Run(&agent);
+            source = std::make_unique<nano_edr::FileSource>(path);
         } else {
-            nano_edr::OsSource source(path);
-            source.Run(&agent);
+            source = std::make_unique<nano_edr::OsSource>(path);
         }
+        source->Run(&agent);
         agent.PrintSummary();
     } catch (const std::exception& e) {
         std::print("необработанное исключение: {}\n", e.what());
