@@ -15,15 +15,17 @@ std::string to_lower(const std::string& s) {
 }
 
 bool string_equals(const std::string& s1, const std::string& s2) {
-    return s1 == s2;
+    return to_lower(s1) == to_lower(s2);
 }
 
 bool string_contains(const std::string& s, const std::string& substr) {
-    return s.contains(substr);
+    return to_lower(s).find(to_lower(substr)) != std::string::npos;
 }
 
 bool string_ends_with(const std::string& s, const std::string& suff) {
-    return s.length() > suff.length() && s.substr(s.length() - suff.length()) == suff;
+    std::string lower_s = to_lower(s);
+    std::string lower_suff = to_lower(suff);
+    return lower_s.length() >= lower_suff.length() && lower_s.substr(lower_s.length() - lower_suff.length()) == lower_suff;
 }
 
 }  // namespace nano_edr

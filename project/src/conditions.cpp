@@ -8,32 +8,13 @@
 
 namespace nano_edr {
 
-bool CheckScriptHostFromTemp(const Event& event) {
-    if (!IsProcessStart(event)) {
-        return false;
-    }
-
-    const std::string* image = FindField(event, "image");
-    if (!image) {
-        throw std::invalid_argument("image is required");
-    }
-
-    std::string image_normalized = NormalizePath(*image);
-
-    if (image_normalized.find("wscript.exe") == std::string::npos && image_normalized.find("cscript.exe") == std::string::npos) {
-        return false;
-    }
-
-    return CommandLineContains(event, "\\appdata\\local\\temp\\") || CommandLineContains(event, "\\windows\\temp\\");
-}
-
 bool FieldEquals::operator()(const Event& event) const {
     auto val = FindField(event, key_);
     if (val == nullptr)
     {
         return false;
     }
-    return string_contains(*val, value_);
+    return string_equals(*val, value_);
 }
 
 bool FieldContains::operator()(const Event& event) const {
@@ -45,7 +26,7 @@ bool FieldContains::operator()(const Event& event) const {
     return string_contains(*val, needle_);
 }
 
-bool FieldEndsWith::operator()(const Event& event) const{
+bool FieldEndsWith::operator()(const Event& event) const {
     auto val = FindField(event, key_);
     if (val == nullptr)
     {
@@ -95,14 +76,15 @@ bool Condition::operator()(const Event& event) const {
         return false;
     case Match::kEndsWith:
         for (const auto& val_ : values_)
+        {
+            if (FieldEndsWith(key_, val_)(event))
             {
-                if (FieldEndsWith(key_, val_)(event))
-                {
-                    return true;
-                }
+                return true;
             }
-            return false;
+        }
+        return false;
     }
+    return false;
 }
 
 }  // namespace nano_edr

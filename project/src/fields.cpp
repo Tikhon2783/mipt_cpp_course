@@ -1,17 +1,12 @@
 #include "fields.h"
 
+#include <algorithm>
+#include <stdexcept>
+#include <string>
+
+#include "text.h"
+
 namespace nano_edr {
-
-char c_to_lower(unsigned char c) {
-    return std::tolower(c);
-}
-
-
-std::string to_lower(const std::string& s) {
-    std::string result = s;
-    std::transform(result.begin(), result.end(), result.begin(), c_to_lower);
-    return result;
-}
 
 // nullptr, а не исключение: у file_write нет поля domain, и спрашивать
 // про него законно.
@@ -89,14 +84,7 @@ bool PathEndsWith(const Event& event, const std::string& suffix) {
         return false;
     }
 
-    std::string path = NormalizePath(*path_ptr);
-    std::string suffix_lower = to_lower(suffix);
-
-    if (path.length() < suffix_lower.length()) {
-        return false;
-    }
-
-    return path.compare(path.length() - suffix_lower.length(), suffix_lower.length(), suffix_lower) == 0;
+    return string_ends_with(NormalizePath(*path_ptr), suffix);
 }
 
 bool CommandLineContains(const Event& event, const std::string& needle) {
@@ -105,10 +93,7 @@ bool CommandLineContains(const Event& event, const std::string& needle) {
         return false;
     }
 
-    std::string cmdline_norm = NormalizePath(*cmdline_ptr);
-    std::string needle_norm = NormalizePath(needle);
-
-    return cmdline_norm.find(needle_norm) != std::string::npos;
+    return string_contains(NormalizePath(*cmdline_ptr), NormalizePath(needle));
 }
 
 std::string NormalizePath(const std::string& path) {
