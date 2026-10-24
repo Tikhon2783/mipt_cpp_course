@@ -17,8 +17,7 @@ void MatchRule::AddCondition(std::unique_ptr<ICondition> condition) {
 }
 
 bool MatchRule::Check(const Event& event) {
-    for (const auto& condition : conditions_)
-    {
+    for (const auto& condition : conditions_) {
         if (!condition->Matches(event)) {
             return false;
         }
@@ -42,8 +41,7 @@ void SequenceRule::SetSecond(std::unique_ptr<ICondition> condition) {
 bool SequenceRule::Check(const Event& event) {
     uint64_t now = event.ts().ms;
 
-    for (auto it = pending_.begin(); it != pending_.end();)
-    {
+    for (auto it = pending_.begin(); it != pending_.end();) {
         if (now - it->ts_ms > window_ms_) {
             it = pending_.erase(it);
         } else {
@@ -51,10 +49,8 @@ bool SequenceRule::Check(const Event& event) {
         }
     }
 
-    if (second_ && second_->Matches(event))
-    {
-        for (auto it = pending_.begin(); it != pending_.end(); ++it)
-        {
+    if (second_ && second_->Matches(event)) {
+        for (auto it = pending_.begin(); it != pending_.end(); ++it) {
             if (same_pid_ && it->pid != event.pid()) {
                 continue;
             }

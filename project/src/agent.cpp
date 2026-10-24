@@ -24,10 +24,10 @@ void Agent::HandleEvent(const Event& event) {
     bool detected = !fired.empty();
     for (const IRule* rule : fired) {
         std::print("[DETECT] {}  {}  ts={} pid={}\n",
-            SeverityName(rule->severity()),
-            rule->id(),
-            event.raw_ts(),
-            event.pid());
+                   SeverityName(rule->severity()),
+                   rule->id(),
+                   event.raw_ts(),
+                   event.pid());
     }
 
     if (detected && !quiet_) {

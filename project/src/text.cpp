@@ -1,6 +1,6 @@
-#include <format>
-
 #include "text.h"
+
+#include <format>
 
 namespace nano_edr {
 

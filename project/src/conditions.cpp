@@ -1,8 +1,9 @@
+#include "conditions.h"
+
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "conditions.h"
 #include "event.h"
 #include "fields.h"
 #include "text.h"
@@ -11,8 +12,7 @@ namespace nano_edr {
 
 bool FieldEquals::Matches(const Event& event) const {
     auto val = FindField(event, key_);
-    if (val == nullptr)
-    {
+    if (val == nullptr) {
         return false;
     }
     return string_equals(*val, value_);
@@ -20,8 +20,7 @@ bool FieldEquals::Matches(const Event& event) const {
 
 bool FieldContains::Matches(const Event& event) const {
     auto val = FindField(event, key_);
-    if (val == nullptr)
-    {
+    if (val == nullptr) {
         return false;
     }
     return string_contains(*val, needle_);
@@ -29,8 +28,7 @@ bool FieldContains::Matches(const Event& event) const {
 
 bool FieldEndsWith::Matches(const Event& event) const {
     auto val = FindField(event, key_);
-    if (val == nullptr)
-    {
+    if (val == nullptr) {
         return false;
     }
     return string_ends_with(*val, suffix_);
@@ -38,14 +36,11 @@ bool FieldEndsWith::Matches(const Event& event) const {
 
 bool FieldInList::Matches(const Event& event) const {
     auto val = FindField(event, key_);
-    if (val == nullptr)
-    {
+    if (val == nullptr) {
         return false;
     }
-    for (const auto& v : values_)
-    {
-        if (string_equals(*val, v))
-        {
+    for (const auto& v : values_) {
+        if (string_equals(*val, v)) {
             return true;
         }
     }
@@ -53,10 +48,8 @@ bool FieldInList::Matches(const Event& event) const {
 }
 
 bool EventTypeIs::Matches(const Event& event) const {
-    for (EventType t : types_)
-    {
-        if (event.event_type() == t)
-        {
+    for (EventType t : types_) {
+        if (event.event_type() == t) {
             return true;
         }
     }
@@ -68,10 +61,8 @@ void AllOf::Add(std::unique_ptr<ICondition> condition) {
 }
 
 bool AllOf::Matches(const Event& event) const {
-    for (const auto& part : parts_)
-    {
-        if (!part->Matches(event))
-        {
+    for (const auto& part : parts_) {
+        if (!part->Matches(event)) {
             return false;
         }
     }
@@ -83,10 +74,8 @@ void AnyOf::Add(std::unique_ptr<ICondition> condition) {
 }
 
 bool AnyOf::Matches(const Event& event) const {
-    for (const auto& part : parts_)
-    {
-        if (part->Matches(event))
-        {
+    for (const auto& part : parts_) {
+        if (part->Matches(event)) {
             return true;
         }
     }
