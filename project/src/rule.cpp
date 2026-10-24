@@ -23,6 +23,7 @@ bool MatchRule::Check(const Event& event) {
     }
     
     CountHit();
+    return true;
 }
 
 }  // namespace nano_edr

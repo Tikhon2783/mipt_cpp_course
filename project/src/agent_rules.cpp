@@ -4,129 +4,144 @@
 
 namespace nano_edr {
     
+std::vector<MatchRule> BuildAgentRules() {
+    std::vector<MatchRule> rules(5);
 
-bool CheckScriptHostFromTemp(const Event& event) {
-    if (!IsProcessStart(event)) {
-        return false;
-    }
+    // CheckScriptHostFromTemp
+    MatchRule rule("script_host_from_temp", Severity::kHigh);
+    rule.AddCondition(Condition::Equals("type", {"process_start"}));
+    rule.AddCondition(
+        Condition::EndsWith("image", {"wscript.exe", "cscript.exe"}));
+    rule.AddCondition(Condition::Contains("cmdline", {
+        "\\appdata\\local\\temp\\", "/appdata/local/temp/",
+        "\\windows\\temp\\", "/windows/temp/",
+        "%temp%", "%tmp%"}));
+    rule.AddAction("kill_process");
 
-    const std::string* image = FindField(event, "image");
-    if (!image) {
-        throw std::invalid_argument("image is required");
-    }
-
-    std::string image_normalized = NormalizePath(*image);
-
-    if (image_normalized.find("wscript.exe") == std::string::npos && image_normalized.find("cscript.exe") == std::string::npos) {
-        return false;
-    }
-
-    return CommandLineContains(event, "\\appdata\\local\\temp\\") || CommandLineContains(event, "\\windows\\temp\\");
 }
 
-bool CheckLolbinDownload(const Event& event) {
-    if (!IsProcessStart(event)) {
-        return false;
-    }
+// bool CheckScriptHostFromTemp(const Event& event) {
+//     if (!IsProcessStart(event)) {
+//         return false;
+//     }
 
-    const std::string* image = FindField(event, "image");
-    if (!image) {
-        throw std::invalid_argument("image is required");
-    }
+//     const std::string* image = FindField(event, "image");
+//     if (!image) {
+//         throw std::invalid_argument("image is required");
+//     }
 
-    std::string image_norm = NormalizePath(*image);
+//     std::string image_normalized = NormalizePath(*image);
 
-    if (image_norm.find("certutil.exe") == std::string::npos && image_norm.find("bitsadmin.exe") == std::string::npos) {
-        return false;
-    }
+//     if (image_normalized.find("wscript.exe") == std::string::npos && image_normalized.find("cscript.exe") == std::string::npos) {
+//         return false;
+//     }
 
-    return CommandLineContains(event, "urlcache") ||
-           CommandLineContains(event, "transfer") ||
-           CommandLineContains(event, "http:") ||
-           CommandLineContains(event, "https:");
-}
+//     return CommandLineContains(event, "\\appdata\\local\\temp\\") || CommandLineContains(event, "\\windows\\temp\\");
+// }
 
-bool CheckHiddenPowershell(const Event& event) {
-    if (!IsProcessStart(event)) {
-        return false;
-    }
+// bool CheckLolbinDownload(const Event& event) {
+//     if (!IsProcessStart(event)) {
+//         return false;
+//     }
 
-    const std::string* image = FindField(event, "image");
-    if (!image) {
-        throw std::invalid_argument("image is required");
-    }
+//     const std::string* image = FindField(event, "image");
+//     if (!image) {
+//         throw std::invalid_argument("image is required");
+//     }
 
-    std::string image_norm = NormalizePath(*image);
+//     std::string image_norm = NormalizePath(*image);
 
-    if (image_norm.find("powershell.exe") == std::string::npos && image_norm.find("pwsh.exe") == std::string::npos) {
-        return false;
-    }
+//     if (image_norm.find("certutil.exe") == std::string::npos && image_norm.find("bitsadmin.exe") == std::string::npos) {
+//         return false;
+//     }
 
-    return CommandLineContains(event, "-w hidden") ||
-           CommandLineContains(event, "-windowstyle hidden") ||
-           CommandLineContains(event, "-enc") ||
-           CommandLineContains(event, "-encodedcommand");
-}
+//     return CommandLineContains(event, "urlcache") ||
+//            CommandLineContains(event, "transfer") ||
+//            CommandLineContains(event, "http:") ||
+//            CommandLineContains(event, "https:");
+// }
 
-bool CheckAutostartWrite(const Event& event) {
-    if (event.type() != "file_create" &&
-        event.type() != "file_write" &&
-        event.type() != "file_move") {
-        return false;
-    }
+// bool CheckHiddenPowershell(const Event& event) {
+//     if (!IsProcessStart(event)) {
+//         return false;
+//     }
 
-    const std::string* path = nullptr;
-    if (event.type() == "file_move") {
-        path = FindField(event, "to");
-    } else {
-        path = FindField(event, "path");
-    }
+//     const std::string* image = FindField(event, "image");
+//     if (!image) {
+//         throw std::invalid_argument("image is required");
+//     }
 
-    if (!path) {
-        return false;
-    }
+//     std::string image_norm = NormalizePath(*image);
 
-    std::string path_norm = NormalizePath(*path);
-    return path_norm.find("\\start menu\\programs\\startup\\") != std::string::npos;
-}
+//     if (image_norm.find("powershell.exe") == std::string::npos && image_norm.find("pwsh.exe") == std::string::npos) {
+//         return false;
+//     }
 
-bool CheckRansomExtension(const Event& event) {
-    if (event.type() != "file_create" &&
-        event.type() != "file_write" &&
-        event.type() != "file_move") {
-        return false;
-    }
+//     return CommandLineContains(event, "-w hidden") ||
+//            CommandLineContains(event, "-windowstyle hidden") ||
+//            CommandLineContains(event, "-enc") ||
+//            CommandLineContains(event, "-encodedcommand");
+// }
 
-    const std::string* path = nullptr;
-    if (event.type() == "file_move") {
-        path = FindField(event, "to");
-    } else {
-        path = FindField(event, "path");
-    }
+// bool CheckAutostartWrite(const Event& event) {
+//     if (event.type() != "file_create" &&
+//         event.type() != "file_write" &&
+//         event.type() != "file_move") {
+//         return false;
+//     }
 
-    if (!path) {
-        return false;
-    }
+//     const std::string* path = nullptr;
+//     if (event.type() == "file_move") {
+//         path = FindField(event, "to");
+//     } else {
+//         path = FindField(event, "path");
+//     }
 
-    std::string path_norm = NormalizePath(*path);
-    return path_norm.length() > 7 && path_norm.substr(path_norm.length() - 7) == ".locked";
-}
+//     if (!path) {
+//         return false;
+//     }
 
-// Таблица правил
-static constexpr Rule kRules[] = {
-    {"script_host_from_temp", CheckScriptHostFromTemp, Severity::kHigh},
-    {"lolbin_download", CheckLolbinDownload, Severity::kHigh},
-    {"hidden_powershell", CheckHiddenPowershell, Severity::kMedium},
-    {"autostart_write", CheckAutostartWrite, Severity::kHigh},
-    {"ransom_extension", CheckRansomExtension, Severity::kCritical},
-};
+//     std::string path_norm = NormalizePath(*path);
+//     return path_norm.find("\\start menu\\programs\\startup\\") != std::string::npos;
+// }
 
-const Rule* AgentRules() {
-    return kRules;
-}
+// bool CheckRansomExtension(const Event& event) {
+//     if (event.type() != "file_create" &&
+//         event.type() != "file_write" &&
+//         event.type() != "file_move") {
+//         return false;
+//     }
 
-size_t AgentRuleCount() {
-    return 5;
-}
+//     const std::string* path = nullptr;
+//     if (event.type() == "file_move") {
+//         path = FindField(event, "to");
+//     } else {
+//         path = FindField(event, "path");
+//     }
+
+//     if (!path) {
+//         return false;
+//     }
+
+//     std::string path_norm = NormalizePath(*path);
+//     return path_norm.length() > 7 && path_norm.substr(path_norm.length() - 7) == ".locked";
+// }
+
+// // Таблица правил
+// static constexpr Rule kRules[] = {
+//     {"script_host_from_temp", CheckScriptHostFromTemp, Severity::kHigh},
+//     {"lolbin_download", CheckLolbinDownload, Severity::kHigh},
+//     {"hidden_powershell", CheckHiddenPowershell, Severity::kMedium},
+//     {"autostart_write", CheckAutostartWrite, Severity::kHigh},
+//     {"ransom_extension", CheckRansomExtension, Severity::kCritical},
+// };
+
+// const Rule* AgentRules() {
+//     return kRules;
+// }
+
+// size_t AgentRuleCount() {
+//     return 5;
+// }
 
 }  // namespace nano_edr
