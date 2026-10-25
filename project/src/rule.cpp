@@ -60,7 +60,7 @@ bool SequenceRule::Check(const Event& event) {
         }
     }
 
-    if (first_ && first_->Matches(event)) {
+    if (first_ && first_->Matches(event) && second_) {
         pending_.push_back(Pending{now, event.pid()});
     }
     return false;
