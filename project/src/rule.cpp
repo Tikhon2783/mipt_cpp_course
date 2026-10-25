@@ -45,7 +45,7 @@ bool SequenceRule::Check(const Event& event) {
         if (now - it->ts_ms > window_ms_) {
             it = pending_.erase(it);
         } else {
-            ++it;
+            break;
         }
     }
 
