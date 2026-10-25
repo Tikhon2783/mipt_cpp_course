@@ -10,10 +10,7 @@ namespace nano_edr {
 
 constexpr std::size_t kContextSize = 2;
 
-Agent::Agent(std::size_t window_size, bool quiet) : events_window_(window_size), quiet_(quiet) {
-    for (auto& rule : BuildAgentRules()) {
-        engine_.AddRule(std::move(rule));
-    }
+Agent::Agent(std::size_t window_size, bool quiet) : events_window_(window_size), engine_(BuildAgentRules()), quiet_(quiet) {
     context_ptr_ = events_window_.head();
 }
 
@@ -52,9 +49,13 @@ void Agent::HandleEvent(const Event& event) {
     ++cnt[event.type()];
 }
 
-void Agent::OnSkipped() {}
+void Agent::OnSkipped() {
+    ++skipped_;
+}
 
-void Agent::OnBroken() {}
+void Agent::OnBroken() {
+    ++broken_;
+}
 
 void Agent::OnTick() {}
 
@@ -66,6 +67,7 @@ void Agent::PrintSummary() const {
     for (auto t : cnt) {
         std::print("\t{}: {}\n", t.first, t.second);
     }
+    std::print("пропущено строк {}, битых {}\n", skipped_, broken_);
     std::print("правила, детектов:\n");
     for (std::size_t i = 0; i < engine_.size(); i++) {
         const IRule& rule = engine_.rule(i);

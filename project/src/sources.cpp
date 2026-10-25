@@ -31,6 +31,7 @@ void FileSource::Run(IEventHandler* handler) {
             Event event(parts);
             handler->HandleEvent(event);
         } catch (const std::exception& e) {
+            handler->OnBroken();
         }
     }
 }
@@ -53,6 +54,7 @@ void OsSource::Run(IEventHandler* handler) {
 }
 
 void OsSource::Trampoline(const os_event* ev, void* ctx) noexcept {
+    IEventHandler* handler = static_cast<IEventHandler*>(ctx);
     try {
         EventParts parts;
         parts.ts = std::to_string(ev->ts);
@@ -67,11 +69,13 @@ void OsSource::Trampoline(const os_event* ev, void* ctx) noexcept {
         }
 
         Event event(parts);
-        static_cast<IEventHandler*>(ctx)->HandleEvent(event);
+        handler->HandleEvent(event);
     } catch (const std::exception& e) {
         std::print(stderr, "пропущено событие: {}\n", e.what());
+        handler->OnBroken();
     } catch (...) {
         std::print(stderr, "пропущено событие: неизвестная ошибка\n");
+        handler->OnBroken();
     }
 }
 

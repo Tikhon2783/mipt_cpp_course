@@ -29,6 +29,8 @@ class Agent : public IEventHandler {
     const nano_edr::EventNode* context_ptr_;
     bool quiet_;
     int total_ = 0;
+    int skipped_ = 0;
+    int broken_ = 0;
     std::map<std::string, int> cnt;
 };
 
