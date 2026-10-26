@@ -16,9 +16,8 @@ Agent::Agent(std::size_t window_size, bool quiet) : events_window_(window_size),
 
 void Agent::HandleEvent(const Event& event) {
     std::vector<const IRule*> fired;
-    engine_.ProcessEvent(event, &fired);
+    size_t detects = engine_.ProcessEvent(event, &fired);
 
-    bool detected = !fired.empty();
     for (const IRule* rule : fired) {
         std::print("[DETECT] {}  {}  ts={} pid={}\n",
                    SeverityName(rule->severity()),
@@ -27,7 +26,7 @@ void Agent::HandleEvent(const Event& event) {
                    event.pid());
     }
 
-    if (detected && !quiet_) {
+    if (detects > 0 && !quiet_) {
         auto curr_context_size = std::min(kContextSize, events_window_.size());
         auto context_head = context_ptr_;
         for (size_t j = 0; j < curr_context_size; j++) {
