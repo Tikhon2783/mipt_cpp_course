@@ -21,17 +21,14 @@ void Agent::HandleEvent(const Event& event) {
     size_t detects = engine_.ProcessEvent(event, &fired);
 
     if (detects > 0 && !quiet_) {
-        for (size_t i = std::min(kContextSize, window_.size()); i > 0; i--)
-        {
+        for (size_t i = std::min(kContextSize, window_.size()); i > 0; i--) {
             std::print(
                 fmt,
                 i,
                 window_[window_.size() - i].ts.ms,
                 window_[window_.size() - i].type,
-                window_[window_.size() - i].pid
-            );
+                window_[window_.size() - i].pid);
         }
-        
     }
 
     for (const IRule* rule : fired) {
