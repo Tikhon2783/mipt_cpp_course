@@ -1,4 +1,3 @@
-#include <memory>
 #include <print>
 
 #include "agent.h"
@@ -6,7 +5,6 @@
 
 int main(int argc, char** argv) {
     bool flag_quiet = false;
-    size_t window_size = 64;
     std::string path;
     bool has_config = false;
     bool has_file = false;
@@ -15,12 +13,6 @@ int main(int argc, char** argv) {
         std::string arg = argv[i];
         if (arg == "--quiet") {
             flag_quiet = true;
-        } else if (arg == "--window-size") {
-            if (i + 1 >= argc) {
-                std::print(stderr, "с --window-size нужен аргумент N\n");
-                return 2;
-            }
-            window_size = std::atoi(argv[++i]);
         } else if (arg == "--file") {
             if (i + 1 >= argc) {
                 std::print(stderr, "с --file нужен аргумент\n");
@@ -51,7 +43,7 @@ int main(int argc, char** argv) {
     }
 
     try {
-        nano_edr::Agent agent(window_size, flag_quiet);
+        nano_edr::Agent agent(flag_quiet);
         std::unique_ptr<nano_edr::IEventSource> source;
         if (has_file) {
             source = std::make_unique<nano_edr::FileSource>(path);
