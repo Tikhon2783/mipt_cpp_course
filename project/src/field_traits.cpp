@@ -12,9 +12,6 @@ bool FieldTraits<std::string>::Parse(const std::string& text, std::string* out) 
 }
 
 bool FieldTraits<uint64_t>::Parse(const std::string& text, uint64_t* out) {
-    if (text.empty()) {
-        return false;
-    }
     uint64_t val = 0;
     auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), val);
     if (ec != std::errc() || ptr != text.data() + text.size()) {

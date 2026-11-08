@@ -28,9 +28,8 @@
 #ifndef NANO_EDR_RING_BUFFER_H
 #define NANO_EDR_RING_BUFFER_H
 
+#include <array>
 #include <cstddef>
-
-#include "event.h"
 
 namespace nano_edr {
 
@@ -57,15 +56,15 @@ class RingBuffer {
         }
 
      private:
-        const RingBuffer* buf_;
-        size_t ind_;
+        const RingBuffer* buf_ = nullptr;
+        size_t ind_ = 0;
     };
 
     // Дописывает элемент. Если буфер полон, самый старый затирается — окно,
     // а не архив.
     void PushBack(const T& value) {
         arr_[(first_ + size_) % N] = value;
-        if (this->full()) {
+        if (full()) {
             first_ = (first_ + 1) % N;
         } else {
             ++size_;

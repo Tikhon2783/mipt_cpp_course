@@ -1,5 +1,6 @@
 #include "agent.h"
 
+#include <algorithm>
 #include <print>
 #include <vector>
 
@@ -10,9 +11,7 @@ namespace nano_edr {
 
 constexpr std::size_t kContextSize = 2;
 
-Agent::Agent(bool quiet) : engine_(BuildAgentRules()), quiet_(quiet) {
-    window_ = RingBuffer<WindowEntry, kWindowCapacity>();
-}
+Agent::Agent(bool quiet) : engine_(BuildAgentRules()), quiet_(quiet) {}
 
 void Agent::HandleEvent(const Event& event) {
     constexpr std::string_view fmt = "[CTX] -{}: {} {} pid={}\n";
@@ -22,12 +21,13 @@ void Agent::HandleEvent(const Event& event) {
 
     if (detects > 0 && !quiet_) {
         for (size_t i = std::min(kContextSize, window_.size()); i > 0; i--) {
+            const WindowEntry& entry = window_[window_.size() - i];
             std::print(
                 fmt,
                 i,
-                window_[window_.size() - i].ts.ms,
-                window_[window_.size() - i].type,
-                window_[window_.size() - i].pid);
+                entry.ts.ms,
+                entry.type,
+                entry.pid);
         }
     }
 
