@@ -1,5 +1,6 @@
 #include "agent.h"
 
+#include <algorithm>
 #include <print>
 #include <vector>
 
@@ -10,13 +11,25 @@ namespace nano_edr {
 
 constexpr std::size_t kContextSize = 2;
 
-Agent::Agent(std::size_t window_size, bool quiet) : events_window_(window_size), engine_(BuildAgentRules()), quiet_(quiet) {
-    context_ptr_ = events_window_.head();
-}
+Agent::Agent(bool quiet) : engine_(BuildAgentRules()), quiet_(quiet) {}
 
 void Agent::HandleEvent(const Event& event) {
+    constexpr std::string_view fmt = "[CTX] -{}: {} {} pid={}\n";
+
     std::vector<const IRule*> fired;
     size_t detects = engine_.ProcessEvent(event, &fired);
+
+    if (detects > 0 && !quiet_) {
+        for (size_t i = std::min(kContextSize, window_.size()); i > 0; i--) {
+            const WindowEntry& entry = window_[window_.size() - i];
+            std::print(
+                fmt,
+                i,
+                entry.ts.ms,
+                entry.type,
+                entry.pid);
+        }
+    }
 
     for (const IRule* rule : fired) {
         std::print("[DETECT] {}  {}  ts={} pid={}\n",
@@ -26,24 +39,7 @@ void Agent::HandleEvent(const Event& event) {
                    event.pid());
     }
 
-    if (detects > 0 && !quiet_) {
-        auto curr_context_size = std::min(kContextSize, events_window_.size());
-        auto context_head = context_ptr_;
-        for (size_t j = 0; j < curr_context_size; j++) {
-            if (context_head == nullptr) {
-                break;
-            }
-            std::print(
-                "[CTX] -{}: ts={} type={} pid={}\n",
-                curr_context_size - j, context_head->event.raw_ts(), context_head->event.type(), context_head->event.pid());
-            context_head = context_head->next;
-        }
-    }
-
-    events_window_.PushBack(event);
-    if (context_ptr_ != nullptr && events_window_.size() > kContextSize) {
-        context_ptr_ = context_ptr_->next;
-    }
+    window_.PushBack(WindowEntry{event.ts(), event.type(), event.pid()});
     ++total_;
     ++cnt[event.type()];
 }
@@ -62,15 +58,17 @@ void Agent::PrintSummary() const {
     if (quiet_) {
         return;
     }
-    std::print("всего событий {}, из них:\n", total_);
+    std::print("[STAT] СВОДКА:\n");
+    std::print("[STAT] всего событий {}, из них:\n", total_);
     for (auto t : cnt) {
         std::print("\t{}: {}\n", t.first, t.second);
     }
-    std::print("пропущено строк {}, битых {}\n", skipped_, broken_);
-    std::print("правила, детектов:\n");
+    std::print("[STAT] пропущено строк {}, битых {}\n", skipped_, broken_);
+    std::print("[STAT] в окне {} из {} мест\n", window_.size(), window_.capacity());
+    std::print("[STAT] правила, детектов:\n");
     for (std::size_t i = 0; i < engine_.size(); i++) {
         const IRule& rule = engine_.rule(i);
-        std::print("  {}:\t{}\n", rule.id(), rule.hits());
+        std::print("[STAT]   {}:\t{}\n", rule.id(), rule.hits());
     }
 }
 
