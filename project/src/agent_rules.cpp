@@ -3,106 +3,139 @@
 #include <memory>
 #include <vector>
 
+#include "combinators.h"
 #include "conditions.h"
+#include "make_rule.h"
 
 namespace nano_edr {
 
-RuleEngine BuildAgentRules() {
-    RuleEngine engine;
+std::unique_ptr<AnyOf> RuleCmdTemp() {
+    auto rule = std::make_unique<AnyOf>();
+    rule->Add(std::make_unique<FieldContains>("cmdline", "\\appdata\\local\\temp\\"));
+    rule->Add(std::make_unique<FieldContains>("cmdline", "/appdata/local/temp/"));
+    rule->Add(std::make_unique<FieldContains>("cmdline", "\\windows\\temp\\"));
+    rule->Add(std::make_unique<FieldContains>("cmdline", "/windows/temp/"));
+    rule->Add(std::make_unique<FieldContains>("cmdline", "%temp%"));
+    rule->Add(std::make_unique<FieldContains>("cmdline", "%tmp%"));
+    return rule;
+}
 
-    // CheckScriptHostFromTemp
-    auto rule_script_host = std::make_unique<MatchRule>("script_host_from_temp", Severity::kHigh);
-    rule_script_host->AddCondition(std::make_unique<EventTypeIs>(std::vector<EventType>{EventType::kProcessStart}));
+
+std::unique_ptr<MatchRule> RuleScriptHostFromTemp() {
+    auto rule = std::make_unique<MatchRule>("script_host_from_temp", Severity::kHigh);
+    rule->AddCondition(std::make_unique<EventTypeIs>(std::vector<EventType>{EventType::kProcessStart}));
     auto host = std::make_unique<AnyOf>();
     host->Add(std::make_unique<FieldEndsWith>("image", "wscript.exe"));
     host->Add(std::make_unique<FieldEndsWith>("image", "cscript.exe"));
-    rule_script_host->AddCondition(std::move(host));
-    auto temp = std::make_unique<AnyOf>();
-    temp->Add(std::make_unique<FieldContains>("cmdline", "\\appdata\\local\\temp\\"));
-    temp->Add(std::make_unique<FieldContains>("cmdline", "/appdata/local/temp/"));
-    temp->Add(std::make_unique<FieldContains>("cmdline", "\\windows\\temp\\"));
-    temp->Add(std::make_unique<FieldContains>("cmdline", "/windows/temp/"));
-    temp->Add(std::make_unique<FieldContains>("cmdline", "%temp%"));
-    temp->Add(std::make_unique<FieldContains>("cmdline", "%tmp%"));
-    rule_script_host->AddCondition(std::move(temp));
-    rule_script_host->AddAction("kill_process");
-    engine.AddRule(std::move(rule_script_host));
+    rule->AddCondition(std::move(host));
+    rule->AddCondition(RuleCmdTemp());
+    rule->AddAction("kill_process");
+    return rule;
+}
 
-    // CheckLolbinDownload
-    auto rule_lolbin = std::make_unique<MatchRule>("lolbin_download", Severity::kHigh);
-    rule_lolbin->AddCondition(std::make_unique<EventTypeIs>(std::vector<EventType>{EventType::kProcessStart}));
+std::unique_ptr<MatchRule> RuleLolbinDownload() {
+    auto rule = std::make_unique<MatchRule>("lolbin_download", Severity::kHigh);
+    rule->AddCondition(std::make_unique<EventTypeIs>(std::vector<EventType>{EventType::kProcessStart}));
     auto lolbin_image = std::make_unique<AnyOf>();
     lolbin_image->Add(std::make_unique<FieldContains>("image", "certutil.exe"));
     lolbin_image->Add(std::make_unique<FieldContains>("image", "bitsadmin.exe"));
-    rule_lolbin->AddCondition(std::move(lolbin_image));
+    rule->AddCondition(std::move(lolbin_image));
     auto lolbin_cmdline = std::make_unique<AnyOf>();
     lolbin_cmdline->Add(std::make_unique<FieldContains>("cmdline", "urlcache"));
     lolbin_cmdline->Add(std::make_unique<FieldContains>("cmdline", "transfer"));
     lolbin_cmdline->Add(std::make_unique<FieldContains>("cmdline", "http:"));
     lolbin_cmdline->Add(std::make_unique<FieldContains>("cmdline", "https:"));
-    rule_lolbin->AddCondition(std::move(lolbin_cmdline));
-    rule_lolbin->AddAction("kill_process");
-    engine.AddRule(std::move(rule_lolbin));
+    rule->AddCondition(std::move(lolbin_cmdline));
+    rule->AddAction("kill_process");
+    return rule;
+}
 
-    // CheckHiddenPowershell
-    auto rule_powershell = std::make_unique<MatchRule>("hidden_powershell", Severity::kMedium);
-    rule_powershell->AddCondition(std::make_unique<EventTypeIs>(std::vector<EventType>{EventType::kProcessStart}));
+std::unique_ptr<MatchRule> RuleHiddenPowershell() {
+    auto rule = std::make_unique<MatchRule>("hidden_powershell", Severity::kMedium);
+    rule->AddCondition(std::make_unique<EventTypeIs>(std::vector<EventType>{EventType::kProcessStart}));
     auto ps_image = std::make_unique<AnyOf>();
     ps_image->Add(std::make_unique<FieldContains>("image", "powershell.exe"));
     ps_image->Add(std::make_unique<FieldContains>("image", "pwsh.exe"));
-    rule_powershell->AddCondition(std::move(ps_image));
+    rule->AddCondition(std::move(ps_image));
     auto ps_cmdline = std::make_unique<AnyOf>();
     ps_cmdline->Add(std::make_unique<FieldContains>("cmdline", "-w hidden"));
     ps_cmdline->Add(std::make_unique<FieldContains>("cmdline", "-windowstyle hidden"));
     ps_cmdline->Add(std::make_unique<FieldContains>("cmdline", "-enc"));
     ps_cmdline->Add(std::make_unique<FieldContains>("cmdline", "-encodedcommand"));
-    rule_powershell->AddCondition(std::move(ps_cmdline));
-    rule_powershell->AddAction("kill_process");
-    engine.AddRule(std::move(rule_powershell));
+    rule->AddCondition(std::move(ps_cmdline));
+    rule->AddAction("kill_process");
+    return rule;
+}
 
-    // CheckAutostartWrite
-    auto rule_autostart = std::make_unique<MatchRule>("autostart_write", Severity::kHigh);
-    rule_autostart->AddCondition(std::make_unique<EventTypeIs>(std::vector<EventType>{EventType::kFileCreate, EventType::kFileWrite, EventType::kFileMove}));
+std::unique_ptr<MatchRule> RuleAutostartWrite() {
+    auto rule = std::make_unique<MatchRule>("autostart_write", Severity::kHigh);
+    rule->AddCondition(std::make_unique<EventTypeIs>(std::vector<EventType>{EventType::kFileCreate, EventType::kFileWrite, EventType::kFileMove}));
     auto paths_autostart = std::make_unique<AnyOf>();
     paths_autostart->Add(std::make_unique<FieldContains>("path", "\\start menu\\programs\\startup\\"));
     paths_autostart->Add(std::make_unique<FieldContains>("path", "/start menu/programs/startup/"));
     paths_autostart->Add(std::make_unique<FieldContains>("to", "\\start menu\\programs\\startup\\"));
     paths_autostart->Add(std::make_unique<FieldContains>("to", "/start menu/programs/startup/"));
-    rule_autostart->AddCondition(std::move(paths_autostart));
-    rule_autostart->AddAction("quarantine_file");
-    engine.AddRule(std::move(rule_autostart));
+    rule->AddCondition(std::move(paths_autostart));
+    rule->AddAction("quarantine_file");
+    return rule;
+}
 
-    // CheckRansomExtension
-    auto rule_ransom = std::make_unique<MatchRule>("ransom_extension", Severity::kCritical);
-    rule_ransom->AddCondition(std::make_unique<EventTypeIs>(std::vector<EventType>{EventType::kFileCreate, EventType::kFileWrite, EventType::kFileMove}));
+std::unique_ptr<MatchRule> RuleRansomExtension() {
+    auto rule = std::make_unique<MatchRule>("ransom_extension", Severity::kCritical);
+    rule->AddCondition(std::make_unique<EventTypeIs>(std::vector<EventType>{EventType::kFileCreate, EventType::kFileWrite, EventType::kFileMove}));
     auto paths_ransom = std::make_unique<AnyOf>();
     paths_ransom->Add(std::make_unique<FieldEndsWith>("path", ".locked"));
     paths_ransom->Add(std::make_unique<FieldEndsWith>("to", ".locked"));
-    rule_ransom->AddCondition(std::move(paths_ransom));
-    rule_ransom->AddAction("quarantine_file");
-    engine.AddRule(std::move(rule_ransom));
+    rule->AddCondition(std::move(paths_ransom));
+    rule->AddAction("quarantine_file");
+    return rule;
+}
 
-    // beacon
-    auto rule_beacon = std::make_unique<SequenceRule>("script_host_beacon", Severity::kCritical, 10000);
+std::unique_ptr<SequenceRule> RuleScriptHostBeacon() {
+    auto rule = std::make_unique<SequenceRule>("script_host_beacon", Severity::kCritical, 10000);
     auto start = std::make_unique<AllOf>();
     start->Add(std::make_unique<EventTypeIs>(std::vector<EventType>{EventType::kProcessStart}));
     auto beacon_host = std::make_unique<AnyOf>();
     beacon_host->Add(std::make_unique<FieldEndsWith>("image", "wscript.exe"));
     beacon_host->Add(std::make_unique<FieldEndsWith>("image", "cscript.exe"));
     start->Add(std::move(beacon_host));
-    auto beacon_temp = std::make_unique<AnyOf>();
-    beacon_temp->Add(std::make_unique<FieldContains>("cmdline", "\\appdata\\local\\temp\\"));
-    beacon_temp->Add(std::make_unique<FieldContains>("cmdline", "/appdata/local/temp/"));
-    beacon_temp->Add(std::make_unique<FieldContains>("cmdline", "\\windows\\temp\\"));
-    beacon_temp->Add(std::make_unique<FieldContains>("cmdline", "/windows/temp/"));
-    beacon_temp->Add(std::make_unique<FieldContains>("cmdline", "%temp%"));
-    beacon_temp->Add(std::make_unique<FieldContains>("cmdline", "%tmp%"));
-    start->Add(std::move(beacon_temp));
-    rule_beacon->SetFirst(std::move(start));
-    rule_beacon->SetSecond(std::make_unique<EventTypeIs>(std::vector<EventType>{EventType::kNetConnect}));
-    rule_beacon->AddAction("kill_process");
-    engine.AddRule(std::move(rule_beacon));
+    start->Add(RuleCmdTemp());
+    rule->SetFirst(std::move(start));
+    rule->SetSecond(std::make_unique<EventTypeIs>(std::vector<EventType>{EventType::kNetConnect}));
+    rule->AddAction("kill_process");
+    return rule;
+}
 
+std::unique_ptr<ThresholdRule<128>> RuleMassWrite() {
+    auto rule = MakeRule<ThresholdRule<128>>(
+        "ransomware_mass_write", Severity::kCritical,
+        20,      // сколько событий
+        10000,   // за сколько миллисекунд
+        "pid");  // порог считается для каждого pid отдельно
+    rule->SetCondition(MakeCondition(AllOfStatic(
+        EventTypeIs({EventType::kFileCreate,
+                     EventType::kFileWrite,
+                     EventType::kFileMove}),
+        AnyOfStatic(FieldContains("path", "\\Documents\\"),
+                    FieldContains("path", "\\Desktop\\"),
+                    FieldContains("to", "\\Documents\\"),
+                    FieldContains("to", "\\Desktop\\")))));
+    rule->AddAction("kill_process");
+    rule->AddAction("quarantine_file");
+    return rule;
+}
+
+RuleEngine BuildAgentRules() {
+    RuleEngine engine;
+
+    auto rule_temp = RuleCmdTemp();
+    engine.AddRule(RuleScriptHostFromTemp());
+    engine.AddRule(RuleAutostartWrite());
+    engine.AddRule(RuleHiddenPowershell());
+    engine.AddRule(RuleLolbinDownload());
+    engine.AddRule(RuleMassWrite());
+    engine.AddRule(RuleScriptHostBeacon());
+    engine.AddRule(RuleRansomExtension());
     return engine;
 }
 
