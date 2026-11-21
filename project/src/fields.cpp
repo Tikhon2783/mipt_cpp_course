@@ -97,7 +97,7 @@ bool CommandLineContains(const Event& event, const std::string& needle) {
 }
 
 std::string NormalizePath(const std::string& path) {
-    std::string result = to_lower(path);
+    std::string result = to_lower(path); // todo avoid to_lower
     std::replace(result.begin(), result.end(), '/', '\\');
     std::string temp_path = "\\appdata\\local\\temp";
 

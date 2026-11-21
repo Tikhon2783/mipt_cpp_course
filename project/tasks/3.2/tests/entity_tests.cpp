@@ -208,7 +208,7 @@ TEST_CASE("цикл в цепочке не зацикливает обход") {
 // ---------------------------------------------------------------------------
 
 TEST_CASE("поддерево процессов") {
-    // То, что придётся убивать на занятии 3.3: не один процесс, а всё,
+    // То, что придётся завершать на занятии 3.3: не один процесс, а всё,
     // что он породил.
     EntityModel model;
     model.Observe(Start("1042", "880", "cmd.exe", "cmd", 1000));
@@ -377,6 +377,22 @@ TEST_CASE("child_of_prev без модели молчит") {
     rule->Check(Start("1042", "880", "cmd.exe", "cmd", 1000));
 
     CHECK_FALSE(rule->Check(Start("1101", "1042", "wscript.exe", "w", 2000)));
+    CHECK(rule->hits() == 0);
+}
+
+TEST_CASE("child_of_prev без модели молчит и на одном процессе") {
+    // Без модели связка не выполняется, даже если оба шага в одном процессе:
+    // child_of_prev отменяет same_pid, а не откатывается к нему.
+    auto rule = std::make_unique<SequenceRule>("self", Severity::kLow, 30000);
+    rule->SetFirst(std::make_unique<EventTypeIs>(
+        std::vector<EventType>{EventType::kProcessStart}));
+    rule->SetSecond(std::make_unique<EventTypeIs>(
+        std::vector<EventType>{EventType::kFileWrite}));
+    rule->set_child_of_prev(true);
+
+    rule->Check(Start("1042", "880", "cmd.exe", "cmd", 1000));
+
+    CHECK_FALSE(rule->Check(Write("1042", "C:\\Temp\\a.js", 1100)));
     CHECK(rule->hits() == 0);
 }
 

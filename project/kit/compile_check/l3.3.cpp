@@ -1,6 +1,6 @@
 // Заготовки занятия 3.3. См. l1.2.cpp.
 //
-// Появились счётчик копий, улики в детекте и реагирование — план и его
+// Появились счётчик копий, события в детекте и реагирование — план и его
 // исполнение. Запись окна пишет студент, и в комплекте её нет.
 
 #include "alert_sink.h"
@@ -15,7 +15,7 @@
 #include "event_source.h"
 #include "field_traits.h"
 #include "fields.h"
-#include "function.h"
+#include "file_stream.h"
 #include "os_handle.h"
 #include "parse.h"
 #include "response.h"

@@ -76,7 +76,7 @@ TEST_CASE("Event следует правилу нуля") {
     // Ни одна из пяти функций у Event не написана, и все пять есть.
     // Компилятор сгенерировал их по полям — и сгенерировал правильно.
     static_assert(std::is_copy_constructible_v<Event>,
-                  "событие обязано копироваться: без этого не собрать улику");
+                  "событие копируется: иначе его не положить в детект");
     static_assert(std::is_move_constructible_v<Event>);
     static_assert(std::is_move_assignable_v<Event>);
 
@@ -105,7 +105,7 @@ TEST_CASE("Detection следует правилу пяти") {
     static_assert(std::is_default_constructible_v<Detection>);
 }
 
-TEST_CASE("детект перемещается вместе с уликами") {
+TEST_CASE("детект перемещается вместе с копиями событий") {
     Detection first;
     first.rule = "test_rule";
     first.pid = "1042";
@@ -118,7 +118,7 @@ TEST_CASE("детект перемещается вместе с уликами"
 
     REQUIRE(second.evidence.size() == 1);
     CHECK(second.rule == "test_rule");
-    // Улика не пересоздавалась: перемещение вектора указателей переносит
+    // Копия не пересоздавалась: перемещение вектора указателей переносит
     // указатели, а не то, на что они указывают.
     CHECK(second.evidence[0].get() == address);
 }
@@ -192,7 +192,7 @@ TEST_CASE("битая строка не портит части до прове�
 // Окно: две перегрузки PushBack
 // ---------------------------------------------------------------------------
 
-TEST_CASE("запись окна копируется, если её не переместить") {
+TEST_CASE("WindowEntry копируется, если её не переместить") {
     ResetCopyStats();
 
     RingBuffer<WindowEntry, 4> window;
@@ -208,7 +208,7 @@ TEST_CASE("запись окна копируется, если её не пер
     CHECK(entry.type == "process_start");  // источник цел
 }
 
-TEST_CASE("запись окна перемещается по std::move") {
+TEST_CASE("WindowEntry перемещается по std::move") {
     ResetCopyStats();
 
     RingBuffer<WindowEntry, 4> window;
@@ -245,40 +245,10 @@ TEST_CASE("вытеснение в кольцевом буфере не копи
 }
 
 // ---------------------------------------------------------------------------
-// Фабрика правил и move-only аргумент
+// Фабрика правил
 // ---------------------------------------------------------------------------
 
-TEST_CASE("фабрика принимает move-only предикат") {
-    // Ровно тот вызов, который не собирался на занятии 3.2: предикат сначала
-    // собран в LambdaRule::Predicate, и только потом уезжает в фабрику.
-    // Чинится он одним словом в теле вашей MakeRule — `std::move(args)...`.
-    //
-    // Имя типа здесь не случайно. На 3.2 и 3.3 за Predicate стоит ваш
-    // Function, с 4.1 — std::move_only_function, и тест обязан пройти
-    // на обоих: он проверяет фабрику, а не то, что стоит за Predicate.
-    //
-    // Обратите внимание, что вызов с самой лямбдой собирался и тогда: лямбда,
-    // захватившая указатель, копируется. Ломался не «вызов с лямбдой»,
-    // а «вызов с move-only аргументом», и разница здесь принципиальна.
-    std::size_t calls = 0;
-    LambdaRule::Predicate predicate = [&calls](const Event&) {
-        ++calls;
-        return true;
-    };
-
-    auto rule = MakeRule<LambdaRule>("moved_predicate", Severity::kHigh,
-                                     std::move(predicate));
-
-    REQUIRE(rule != nullptr);
-    CHECK(rule->id() == "moved_predicate");
-
-    const Event event(MakeParts(1000, "process_start"));
-    CHECK(rule->Check(event));
-    CHECK(calls == 1);
-    CHECK(rule->hits() == 1);
-}
-
-TEST_CASE("фабрика принимает и обычную лямбду") {
+TEST_CASE("фабрика принимает лямбду") {
     auto rule = MakeRule<LambdaRule>(
         "plain_lambda", Severity::kLow,
         [](const Event& event) { return event.pid() == "1042"; });
