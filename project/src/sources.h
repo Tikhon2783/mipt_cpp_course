@@ -22,6 +22,7 @@ class OsSource : public IEventSource {
  public:
     explicit OsSource(const std::string& config_path);  // создаёт OsHandle
     void Run(IEventHandler* handler) override;          // Subscribe, Start, Wait в цикле
+    OsHandle* os() override { return &handle_; }
 
  private:
     static void Trampoline(const os_event* ev, void* ctx) noexcept;

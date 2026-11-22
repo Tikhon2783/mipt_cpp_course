@@ -1,5 +1,6 @@
 #include "text.h"
 
+#include <algorithm>
 #include <format>
 
 namespace nano_edr {
@@ -26,20 +27,16 @@ bool string_equals(const std::string& s1, const std::string& s2) {
     return true;
 }
 
-// todo fix unnecesary copying
-bool string_starts_with(const std::string& s, const std::string& pref) {
-    if (s.size() < pref.size()) {
-        return false;
-    }
-    for (size_t i = 0; i < pref.size(); i++) {
-        if (c_to_lower(s[i]) != c_to_lower(pref[i])) {
-            return false;
-        }
-    }
-    return true;
-}
 bool string_contains(const std::string& s, const std::string& substr) {
-    return to_lower(s).find(to_lower(substr)) != std::string::npos;
+    // return to_lower(s).find(to_lower(substr)) != std::string::npos;
+    if (substr.empty()) {
+        return true;
+    }
+    const auto it = std::search(s.begin(), s.end(), substr.begin(), substr.end(),
+                                [](char a, char b) {
+                                    return c_to_lower(a) == c_to_lower(b);
+                                });
+    return it != s.end();
 }
 
 bool string_ends_with(const std::string& s, const std::string& suff) {
