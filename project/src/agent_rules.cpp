@@ -20,7 +20,6 @@ std::unique_ptr<AnyOf> RuleCmdTemp() {
     return rule;
 }
 
-
 std::unique_ptr<MatchRule> RuleScriptHostFromTemp() {
     auto rule = std::make_unique<MatchRule>("script_host_from_temp", Severity::kHigh);
     rule->AddCondition(std::make_unique<EventTypeIs>(std::vector<EventType>{EventType::kProcessStart}));

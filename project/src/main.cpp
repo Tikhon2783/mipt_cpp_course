@@ -4,9 +4,9 @@
 
 #include "agent.h"
 #include "copy_stats.h"
-#include "sources.h"
 #include "edr_handle.h"
 #include "field_traits.h"
+#include "sources.h"
 
 struct Options {
     std::string path;

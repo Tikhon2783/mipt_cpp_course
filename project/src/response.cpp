@@ -1,3 +1,5 @@
+#include "response.h"
+
 #include <cctype>
 #include <memory>
 #include <print>
@@ -10,13 +12,11 @@
 #include "event.h"
 #include "fields.h"
 #include "os_handle.h"
-#include "response.h"
 
 namespace nano_edr {
 
 namespace {
 
-// Путь начинается с `prefix` без учёта регистра. `prefix` задан строчными.
 bool StartsWithIgnoreCase(const std::string& path, const std::string& prefix) {
     if (path.size() < prefix.size()) {
         return false;
@@ -30,7 +30,6 @@ bool StartsWithIgnoreCase(const std::string& path, const std::string& prefix) {
     return true;
 }
 
-// Системный файл: путь начинается с C:\Windows\ или C:\Program Files.
 bool IsSystemPath(const std::string& path) {
     return StartsWithIgnoreCase(path, "c:\\windows\\") ||
            StartsWithIgnoreCase(path, "c:\\program files");
@@ -50,7 +49,6 @@ ResponsePlan ResponsePlanner::Plan(const Detection& detection) const {
     const std::vector<std::string> tree =
         model_->GetProcessTree(detection.pid);
 
-    // Изоляция файла: системные файлы и пустой `to` в план не попадают.
     auto add_quarantine = [&](const std::string& path,
                               const std::string& why) {
         if (IsSystemPath(path)) {
@@ -68,7 +66,6 @@ ResponsePlan ResponsePlanner::Plan(const Detection& detection) const {
         plan.Add(std::move(action));
     };
 
-    // Удаление файла: системные файлы в план не попадают.
     auto add_delete = [&](const std::string& path, const std::string& why) {
         if (IsSystemPath(path)) {
             return;

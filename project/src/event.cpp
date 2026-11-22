@@ -33,7 +33,7 @@ Timestamp Event::Validate(const std::string& raw_ts, const std::string& type) {
 }
 
 Event::Event(const EventParts& parts) {
-    ts_ = Validate(parts.ts, parts.type);  // бросает, если ts или type неверны
+    ts_ = Validate(parts.ts, parts.type);
     event_type_ = EventTypeFromString(parts.type);
     raw_ts_ = parts.ts;
     type_ = parts.type;
@@ -43,12 +43,9 @@ Event::Event(const EventParts& parts) {
 }
 
 Event::Event(EventParts&& parts) {
-    ts_ = Validate(parts.ts, parts.type);  // бросает, если ts или type неверны
-    // до перемещения вычислить event_type_ из parts.type
+    ts_ = Validate(parts.ts, parts.type);
     event_type_ = EventTypeFromString(parts.type);
-    // число строк считается до std::move(parts.fields)
     const std::size_t strings = 3 + 2 * parts.fields.size();
-    // потом забрать строки
     raw_ts_ = std::move(parts.ts);
     type_ = std::move(parts.type);
     pid_ = std::move(parts.pid);

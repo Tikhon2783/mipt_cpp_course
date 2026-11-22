@@ -1,7 +1,7 @@
-#include <string>
-#include <format>
-
 #include "detection.h"
+
+#include <format>
+#include <string>
 
 namespace nano_edr {
 
@@ -11,8 +11,7 @@ std::string ToString(const Detection& detection) {
         SeverityName(detection.severity),
         detection.rule,
         detection.ts.ms,
-        detection.pid
-    );
+        detection.pid);
     if (!detection.chain.empty()) {
         line += " chain=";
         line += detection.chain;

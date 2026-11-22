@@ -32,7 +32,7 @@ void Agent::HandleEvent(const Event& event) {
         own_entry.type = event.type();
         own_entry.pid = event.pid();
         window_.PushBack(std::move(own_entry));
-        return;  // до ProcessEvent своё событие не доходит
+        return;
     }
 
     ctx_printed_ = false;
@@ -67,8 +67,7 @@ void Agent::EnableResponse(OsHandle* os, bool dry_run,
 void Agent::PrintContextOnce() {
     constexpr std::string_view fmt = "[CTX] -{}: {} {} pid={}\n";
 
-    if (quiet_ || ctx_printed_)
-    {
+    if (quiet_ || ctx_printed_) {
         return;
     }
 

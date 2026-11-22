@@ -1,6 +1,6 @@
+#include <print>
 #include <stdexcept>
 #include <string>
-#include <print>
 #include <utility>
 
 #include "alert_sink.h"
@@ -43,8 +43,7 @@ void FanOutSink::Add(AlertSink sink) {
 }
 
 void FanOutSink::operator()(const Detection& detection) const {
-    for (auto sink : sinks_)
-    {
+    for (auto sink : sinks_) {
         sink(detection);
     }
 }

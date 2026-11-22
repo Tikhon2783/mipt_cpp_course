@@ -9,8 +9,8 @@
 
 #include "event.h"
 #include "event_source.h"
-#include "ring_buffer.h"
 #include "response.h"
+#include "ring_buffer.h"
 #include "rule_engine.h"
 #include "window_entry.h"
 
@@ -34,7 +34,7 @@ class Agent : public IEventHandler {
     void EnableResponse(OsHandle* os, bool dry_run,
                         const std::string& quarantine_dir);
 
-private:
+ private:
     void PrintContextOnce();
 
     RingBuffer<WindowEntry, kWindowCapacity> window_;

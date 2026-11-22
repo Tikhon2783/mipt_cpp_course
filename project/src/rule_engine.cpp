@@ -13,12 +13,9 @@ void RuleEngine::Subscribe(AlertSink sink) {
 
 Detection RuleEngine::MakeDetection(const IRule& rule, const Event& event) const {
     std::string chain;
-    if (model_ == nullptr)
-    {
+    if (model_ == nullptr) {
         chain = "";
-    }
-    else
-    {
+    } else {
         chain = model_->DescribeChain(event.pid());
     }
     Detection detection;
