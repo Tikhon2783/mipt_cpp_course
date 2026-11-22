@@ -80,9 +80,18 @@ bool SequenceRule::Check(const Event& event) {
     return false;
 }
 
-// src/rule.cpp, шаг 7
-LambdaRule::LambdaRule(const std::string& id, Severity severity, Predicate)
-    : RuleBase(id, severity) {}
-bool LambdaRule::Check(const Event&) { return false; }
+LambdaRule::LambdaRule(const std::string& id, Severity severity, Predicate predicate)
+    : RuleBase(id, severity), predicate_(std::move(predicate)) {}
+
+bool LambdaRule::Check(const Event& event) {
+    if (!predicate_) {
+        return false;
+    }
+    if (predicate_(event)) {
+        CountHit();
+        return true;
+    }
+    return false;
+}
 
 }  // namespace nano_edr

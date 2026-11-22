@@ -32,8 +32,10 @@ bool string_contains(const std::string& s, const std::string& substr) {
     if (substr.empty()) {
         return true;
     }
-    const auto it = std::search(s.begin(), s.end(),
-                                std::boyer_moore_searcher(substr.begin(), substr.end()));
+    const auto it = std::search(s.begin(), s.end(), substr.begin(), substr.end(),
+                                [](char a, char b) {
+                                    return c_to_lower(a) == c_to_lower(b);
+                                });
     return it != s.end();
 }
 

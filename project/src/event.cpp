@@ -1,29 +1,59 @@
 #include "event.h"
 
+#include <stdexcept>
+#include <utility>
+
+#include "copy_stats.h"
+
 namespace nano_edr {
 
-Event::Event(const EventParts& parts) : raw_ts_(parts.ts), type_(parts.type), pid_(parts.pid), fields_(parts.fields) {
-    if (parts.ts.empty()) {
+Timestamp Event::Validate(const std::string& raw_ts, const std::string& type) {
+    if (raw_ts.empty()) {
         throw std::invalid_argument("пустой ts");
     }
 
-    for (char c : parts.ts) {
+    for (char c : raw_ts) {
         if (c < '0' || c > '9') {
-            throw std::invalid_argument("неверное время события: " + parts.ts);
+            throw std::invalid_argument("неверное время события: " + raw_ts);
         }
     }
 
+    Timestamp result;
     try {
-        ts_.ms = std::stoull(parts.ts);
+        result.ms = std::stoull(raw_ts);
     } catch (const std::out_of_range&) {
-        throw std::invalid_argument("ts не помещается в uint64_t: " + parts.ts);
+        throw std::invalid_argument("ts не помещается в uint64_t: " + raw_ts);
     }
 
-    if (type_.empty()) {
+    if (type.empty()) {
         throw std::invalid_argument("пустой type");
     }
 
-    event_type_ = EventTypeFromString(type_);
+    return result;
+}
+
+Event::Event(const EventParts& parts) {
+    ts_ = Validate(parts.ts, parts.type);  // бросает, если ts или type неверны
+    event_type_ = EventTypeFromString(parts.type);
+    raw_ts_ = parts.ts;
+    type_ = parts.type;
+    pid_ = parts.pid;
+    fields_ = parts.fields;
+    copy_stats().event_strings_copied += 3 + 2 * parts.fields.size();
+}
+
+Event::Event(EventParts&& parts) {
+    ts_ = Validate(parts.ts, parts.type);  // бросает, если ts или type неверны
+    // до перемещения вычислить event_type_ из parts.type
+    event_type_ = EventTypeFromString(parts.type);
+    // число строк считается до std::move(parts.fields)
+    const std::size_t strings = 3 + 2 * parts.fields.size();
+    // потом забрать строки
+    raw_ts_ = std::move(parts.ts);
+    type_ = std::move(parts.type);
+    pid_ = std::move(parts.pid);
+    fields_ = std::move(parts.fields);
+    copy_stats().event_strings_moved += strings;
 }
 
 EventType EventTypeFromString(const std::string& type) {

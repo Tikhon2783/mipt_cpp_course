@@ -17,6 +17,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
+#include <vector>
 
 #include "alert_sink.h"
 #include "detection.h"
@@ -30,6 +32,19 @@ class DedupSink {
     DedupSink(AlertSink inner, uint64_t period_ms, std::size_t* suppressed);
 
     void operator()(const Detection& detection);
+
+ private:
+    // Первый пропущенный детект пары «правило + процесс».
+    struct Entry {
+        std::string rule;
+        std::string pid;
+        uint64_t first_ts;
+    };
+
+    AlertSink inner_;
+    uint64_t period_ms_;
+    std::size_t* suppressed_;
+    std::vector<Entry> seen_;
 };
 
 }  // namespace nano_edr

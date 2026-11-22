@@ -30,6 +30,7 @@
 
 #include <array>
 #include <cstddef>
+#include <utility>
 
 namespace nano_edr {
 
@@ -64,6 +65,15 @@ class RingBuffer {
     // а не архив.
     void PushBack(const T& value) {
         arr_[(first_ + size_) % N] = value;
+        if (full()) {
+            first_ = (first_ + 1) % N;
+        } else {
+            ++size_;
+        }
+    }
+
+    void PushBack(T&& value) {
+        arr_[(first_ + size_) % N] = std::move(value);
         if (full()) {
             first_ = (first_ + 1) % N;
         } else {

@@ -30,6 +30,8 @@ std::unique_ptr<MatchRule> RuleScriptHostFromTemp() {
     rule->AddCondition(std::move(host));
     rule->AddCondition(RuleCmdTemp());
     rule->AddAction("kill_process");
+    rule->AddAction("quarantine_source");
+    rule->AddAction("delete_dropped");
     return rule;
 }
 
@@ -76,7 +78,7 @@ std::unique_ptr<MatchRule> RuleAutostartWrite() {
     paths_autostart->Add(std::make_unique<FieldContains>("to", "\\start menu\\programs\\startup\\"));
     paths_autostart->Add(std::make_unique<FieldContains>("to", "/start menu/programs/startup/"));
     rule->AddCondition(std::move(paths_autostart));
-    rule->AddAction("quarantine_file");
+    rule->AddAction("delete_evidence");
     return rule;
 }
 
@@ -87,7 +89,8 @@ std::unique_ptr<MatchRule> RuleRansomExtension() {
     paths_ransom->Add(std::make_unique<FieldEndsWith>("path", ".locked"));
     paths_ransom->Add(std::make_unique<FieldEndsWith>("to", ".locked"));
     rule->AddCondition(std::move(paths_ransom));
-    rule->AddAction("quarantine_file");
+    rule->AddAction("kill_process");
+    rule->AddAction("quarantine_image");
     return rule;
 }
 
@@ -121,7 +124,7 @@ std::unique_ptr<ThresholdRule<128>> RuleMassWrite() {
                     FieldContains("to", "\\Documents\\"),
                     FieldContains("to", "\\Desktop\\")))));
     rule->AddAction("kill_process");
-    rule->AddAction("quarantine_file");
+    rule->AddAction("quarantine_image");
     return rule;
 }
 
@@ -151,6 +154,23 @@ std::unique_ptr<SequenceRule> RuleShellSpawnsScriptHost(const EntityModel* model
     return rule;
 }
 
+std::unique_ptr<LambdaRule> RuleSpawnedFromDroppedFile(const EntityModel* model) {
+    auto rule = MakeRule<LambdaRule>(
+        "spawned_from_dropped_file", Severity::kHigh,
+        [model](const Event& event) {
+            if (event.event_type() != EventType::kProcessStart) {
+                return false;
+            }
+            const FileRecord* source = model->FindSpawnSource(event.pid());
+            return source != nullptr && !source->writer_pid.empty() &&
+                   source->writer_pid != event.pid();
+        });
+    rule->AddAction("kill_process");
+    rule->AddAction("quarantine_source");
+    rule->AddAction("delete_dropped");
+    return rule;
+}
+
 RuleEngine BuildAgentRules(const EntityModel* model) {
     RuleEngine engine;
 
@@ -163,6 +183,7 @@ RuleEngine BuildAgentRules(const EntityModel* model) {
     engine.AddRule(RuleScriptHostBeacon());
     engine.AddRule(RuleRansomExtension());
     engine.AddRule(RuleShellSpawnsScriptHost(model));
+    engine.AddRule(RuleSpawnedFromDroppedFile(model));
     return engine;
 }
 

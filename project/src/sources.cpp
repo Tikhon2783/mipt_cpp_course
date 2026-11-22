@@ -1,6 +1,7 @@
 #include "sources.h"
 
 #include <print>
+#include <utility>
 
 #include "event.h"
 #include "parse.h"
@@ -28,7 +29,7 @@ void FileSource::Run(IEventHandler* handler) {
         }
 
         try {
-            Event event(parts);
+            Event event(std::move(parts));
             handler->HandleEvent(event);
         } catch (const std::exception& e) {
             handler->OnBroken();
@@ -68,7 +69,7 @@ void OsSource::Trampoline(const os_event* ev, void* ctx) noexcept {
             parts.fields.push_back(Field{ev->fields[i].key, ev->fields[i].value});
         }
 
-        Event event(parts);
+        Event event(std::move(parts));
         handler->HandleEvent(event);
     } catch (const std::exception& e) {
         std::print(stderr, "пропущено событие: {}\n", e.what());

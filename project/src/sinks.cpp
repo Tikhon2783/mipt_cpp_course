@@ -1,6 +1,7 @@
 #include <stdexcept>
 #include <string>
 #include <print>
+#include <utility>
 
 #include "alert_sink.h"
 #include "dedup_sink.h"
@@ -30,7 +31,9 @@ void FileSink::operator()(const Detection& detection) {
 
 void CountingSink::operator()(const Detection& detection) const {
     ++counter_->total;
-    counter_->seen.push_back(detection);
+    counter_->seen.push_back(SeenAlert{detection.rule, detection.severity,
+                                       detection.ts, detection.pid,
+                                       detection.actions});
 }
 
 // --- FanOutSink ------------------------------------------------------------
@@ -48,8 +51,31 @@ void FanOutSink::operator()(const Detection& detection) const {
 
 // --- DedupSink -------------------------------------------------------------
 
-DedupSink::DedupSink(AlertSink, uint64_t, std::size_t*) {}
+DedupSink::DedupSink(AlertSink inner, uint64_t period_ms, std::size_t* suppressed)
+    : inner_(std::move(inner)), period_ms_(period_ms), suppressed_(suppressed) {}
 
-void DedupSink::operator()(const Detection&) {}
+void DedupSink::operator()(const Detection& detection) {
+    if (period_ms_ == 0) {
+        inner_(detection);
+        return;
+    }
+
+    for (Entry& entry : seen_) {
+        if (entry.rule == detection.rule && entry.pid == detection.pid) {
+            if (detection.ts.ms - entry.first_ts <= period_ms_) {
+                if (suppressed_ != nullptr) {
+                    ++*suppressed_;
+                }
+                return;
+            }
+            entry.first_ts = detection.ts.ms;
+            inner_(detection);
+            return;
+        }
+    }
+
+    seen_.push_back(Entry{detection.rule, detection.pid, detection.ts.ms});
+    inner_(detection);
+}
 
 }  // namespace nano_edr

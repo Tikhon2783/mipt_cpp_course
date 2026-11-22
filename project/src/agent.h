@@ -2,27 +2,25 @@
 #define NANO_EDR_AGENT_H
 
 #include <cstddef>
+#include <cstdint>
 #include <map>
+#include <memory>
 #include <string>
 
 #include "event.h"
 #include "event_source.h"
 #include "ring_buffer.h"
+#include "response.h"
 #include "rule_engine.h"
+#include "window_entry.h"
 
 namespace nano_edr {
-
-struct WindowEntry {
-    Timestamp ts;
-    std::string type;
-    std::string pid;
-};
 
 class Agent : public IEventHandler {
  public:
     static constexpr std::size_t kWindowCapacity = 256;
 
-    explicit Agent(bool quiet);
+    Agent(bool quiet, uint64_t dedup_period_ms);
 
     void HandleEvent(const Event& event) override;
     void OnSkipped() override;
@@ -31,10 +29,13 @@ class Agent : public IEventHandler {
 
     void PrintSummary() const;
 
-    void Agent::Subscribe(AlertSink sink);
-    
+    void Subscribe(AlertSink sink);
+
+    void EnableResponse(OsHandle* os, bool dry_run,
+                        const std::string& quarantine_dir);
+
 private:
-    void Agent::PrintContextOnce();
+    void PrintContextOnce();
 
     RingBuffer<WindowEntry, kWindowCapacity> window_;
     EntityModel model_;
@@ -44,7 +45,11 @@ private:
     int broken_ = 0;
     bool quiet_ = 0;
     bool ctx_printed_ = 0;
+    uint64_t dedup_period_ms_{};
+    std::size_t suppressed_{};
     std::map<std::string, int> cnt;
+    std::unique_ptr<ResponsePlanner> planner_{};
+    std::unique_ptr<Responder> responder_{};
 };
 
 }  // namespace nano_edr

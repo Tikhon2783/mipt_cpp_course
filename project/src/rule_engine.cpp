@@ -1,7 +1,9 @@
 #include "rule_engine.h"
 
+#include <memory>
 #include <utility>
-#include <print>
+
+#include "copy_stats.h"
 
 namespace nano_edr {
 
@@ -19,13 +21,16 @@ Detection RuleEngine::MakeDetection(const IRule& rule, const Event& event) const
     {
         chain = model_->DescribeChain(event.pid());
     }
-    return Detection{rule.id(),
-        rule.severity(),
-        event.ts(),
-        event.pid(),
-        std::move(chain),
-        rule.actions()
-    };
+    Detection detection;
+    detection.rule = rule.id();
+    detection.severity = rule.severity();
+    detection.ts = event.ts();
+    detection.pid = event.pid();
+    detection.chain = std::move(chain);
+    detection.actions = rule.actions();
+    detection.evidence.push_back(std::make_unique<Event>(event));
+    ++copy_stats().evidence_copied;
+    return detection;
 }
 
 void RuleEngine::AddRule(std::unique_ptr<IRule> rule) {
@@ -41,16 +46,10 @@ std::size_t RuleEngine::ProcessEvent(const Event& event,
             if (fired != nullptr) {
                 fired->push_back(rule.get());
             }
+            const Detection detection = MakeDetection(*rule, event);
             for (const auto& sink : sinks_) {
-                sink(MakeDetection(*rule, event));
+                sink(detection);
             }
-
-            std::print("[DETECT] {}  {}  ts={} pid={}\n",
-                    SeverityName(rule->severity()),
-                    rule->id(),
-                    event.raw_ts(),
-                    event.pid());
-        
         }
     }
 
