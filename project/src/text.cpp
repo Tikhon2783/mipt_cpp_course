@@ -1,7 +1,7 @@
 #include "text.h"
 
+#include <algorithm>
 #include <format>
-#include <functional>
 
 namespace nano_edr {
 
