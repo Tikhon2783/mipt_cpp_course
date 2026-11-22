@@ -38,6 +38,20 @@ void SequenceRule::SetSecond(std::unique_ptr<ICondition> condition) {
     second_ = std::move(condition);
 }
 
+bool SequenceRule::Linked(const Pending& first, const Event& second) const {
+    if (child_of_prev_) {
+        if (model_ == nullptr) {
+            return false;
+        }
+        const ProcessRecord* process = model_->FindProcess(second.pid());
+        return process != nullptr && process->ppid == first.pid;
+    }
+    if (same_pid_) {
+        return first.pid == second.pid();
+    }
+    return true;
+}
+
 bool SequenceRule::Check(const Event& event) {
     uint64_t now = event.ts().ms;
 
@@ -51,7 +65,7 @@ bool SequenceRule::Check(const Event& event) {
 
     if (second_ && second_->Matches(event)) {
         for (auto it = pending_.begin(); it != pending_.end(); ++it) {
-            if (same_pid_ && it->pid != event.pid()) {
+            if (!Linked(*it, event)) {
                 continue;
             }
             pending_.erase(it);
@@ -65,5 +79,10 @@ bool SequenceRule::Check(const Event& event) {
     }
     return false;
 }
+
+// src/rule.cpp, шаг 7
+LambdaRule::LambdaRule(const std::string& id, Severity severity, Predicate)
+    : RuleBase(id, severity) {}
+bool LambdaRule::Check(const Event&) { return false; }
 
 }  // namespace nano_edr

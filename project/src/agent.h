@@ -31,13 +31,19 @@ class Agent : public IEventHandler {
 
     void PrintSummary() const;
 
- private:
+    void Agent::Subscribe(AlertSink sink);
+    
+private:
+    void Agent::PrintContextOnce();
+
     RingBuffer<WindowEntry, kWindowCapacity> window_;
+    EntityModel model_;
     RuleEngine engine_;  // в конструкторе: BuildAgentRules()
-    bool quiet_;
     int total_ = 0;
     int skipped_ = 0;
     int broken_ = 0;
+    bool quiet_ = 0;
+    bool ctx_printed_ = 0;
     std::map<std::string, int> cnt;
 };
 

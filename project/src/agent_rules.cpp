@@ -125,7 +125,33 @@ std::unique_ptr<ThresholdRule<128>> RuleMassWrite() {
     return rule;
 }
 
-RuleEngine BuildAgentRules() {
+std::unique_ptr<SequenceRule> RuleShellSpawnsScriptHost(const EntityModel* model) {
+    auto rule = MakeRule<SequenceRule>("shell_spawns_script_host",
+                                       Severity::kHigh, 30000);
+    auto shell_start = std::make_unique<AllOf>();
+    shell_start->Add(std::make_unique<EventTypeIs>(std::vector<EventType>{EventType::kProcessStart}));
+    auto shell_image = std::make_unique<AnyOf>();
+    shell_image->Add(std::make_unique<FieldEndsWith>("image", "cmd.exe"));
+    shell_image->Add(std::make_unique<FieldEndsWith>("image", "powershell.exe"));
+    shell_image->Add(std::make_unique<FieldEndsWith>("image", "pwsh.exe"));
+    shell_start->Add(std::move(shell_image));
+    rule->SetFirst(std::move(shell_start));
+
+    auto host_start = std::make_unique<AllOf>();
+    host_start->Add(std::make_unique<EventTypeIs>(std::vector<EventType>{EventType::kProcessStart}));
+    auto host_image = std::make_unique<AnyOf>();
+    host_image->Add(std::make_unique<FieldEndsWith>("image", "wscript.exe"));
+    host_image->Add(std::make_unique<FieldEndsWith>("image", "cscript.exe"));
+    host_start->Add(std::move(host_image));
+    rule->SetSecond(std::move(host_start));
+
+    rule->set_child_of_prev(true);
+    rule->SetModel(model);
+    rule->AddAction("kill_process");
+    return rule;
+}
+
+RuleEngine BuildAgentRules(const EntityModel* model) {
     RuleEngine engine;
 
     auto rule_temp = RuleCmdTemp();
@@ -136,6 +162,7 @@ RuleEngine BuildAgentRules() {
     engine.AddRule(RuleMassWrite());
     engine.AddRule(RuleScriptHostBeacon());
     engine.AddRule(RuleRansomExtension());
+    engine.AddRule(RuleShellSpawnsScriptHost(model));
     return engine;
 }
 
